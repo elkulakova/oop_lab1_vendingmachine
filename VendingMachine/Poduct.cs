@@ -4,7 +4,7 @@ public class Product
     private int _productQuantity;
 
     public required string Name { get; set; }
-    public required int Id { get; set; } // uniqueness check!!!
+    public required int Id { get; set; } // uniqueness check – in VendingMachine IdSet
 
     public required int Price
     {

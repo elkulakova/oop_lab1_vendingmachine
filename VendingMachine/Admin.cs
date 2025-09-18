@@ -47,8 +47,17 @@ public class Admin
                                 string name = parts[1];
                                 if (int.TryParse(parts[0], out int id) && int.TryParse(parts[2], out int price) && int.TryParse(parts[3], out int quantity))
                                 {
-                                    Product product_exemp = new Product { Id = id, Name = name, Price = price, Quantity = quantity };
-                                    machine.AvailableProducts.Add(product_exemp);
+                                    if (!machine.IdSet.Contains(id))
+                                    {
+                                        Product product_exemp = new Product { Id = id, Name = name, Price = price, Quantity = quantity };
+                                        machine.AvailableProducts.Add(product_exemp);
+                                        machine.IdSet.Add(id);
+                                    }
+                                    else
+                                    {
+                                        Product existingProduct = machine.AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
+                                        Console.WriteLine($"id {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
+                                    }
                                 }
                                 else
                                 {
@@ -147,11 +156,12 @@ public class Admin
             Console.WriteLine("choose an option to do:\n1. refill existing products\n2. add new product");
             string? option = Console.ReadLine();
 
-            switch (option)
+            if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
             {
-                case null:
-                    throw new ArgumentException("choose the task to do, input cannot be empty.");
-
+                throw new ArgumentException("choose the task to do, input cannot be empty.");
+            }
+            switch (option.ToLower().Trim())
+            {
                 case "1. refill existing products":
                 case "refill existing products":
                 case "refill products":
@@ -178,7 +188,23 @@ public class Admin
 
     public static void CollectMoney(VendingMachine machine)
     {
+        var cashDesk = machine.CashDesk;
+        int summa = 0;
 
+        foreach (var entry in cashDesk)
+        {
+            summa += entry.Key * entry.Value;
+            Console.WriteLine($"\n{entry.Key}-coin x {entry.Value} pieces");
+        }
+
+        Console.WriteLine($"\n{summa} RUB collected");
+
+        foreach (int face in Coin.Faces)
+        {
+            cashDesk[face] = 0;
+        }
+
+        Console.WriteLine("cash desk is empty now");
     }
 
     public static void ExitProgram(VendingMachine machine)
@@ -191,18 +217,19 @@ public class Admin
         Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. exit program.");
         string? option = Console.ReadLine();
 
-        switch (option)
+        if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
         {
-            case null:
-                throw new ArgumentException("choose the task to do, input cannot be empty.");
-
+            throw new ArgumentException("choose the task to do, input cannot be empty.");
+        }
+        switch (option.ToLower().Trim())
+        {
             case "1. refill products":
             case "refill products":
             case "refill":
             case "1":
                 Console.WriteLine("Refilling...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
                 RefillAddProducts(machine);
-                break;
+                return;
 
             case "2. collect the recieved money":
             case "collect the recieved money":
@@ -210,6 +237,7 @@ public class Admin
             case "collect":
             case "2":
                 Console.WriteLine("Colecting money...."); // gap closure
+                CollectMoney(machine);
                 return;
 
             case "3. exit program":
