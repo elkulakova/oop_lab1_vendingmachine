@@ -3,10 +3,10 @@ public class Product
     private int _productPrice;
     private int _productQuantity;
 
-    public string Name { get; set; }
-    public int Id { get; set; }
+    public required string Name { get; set; }
+    public required int Id { get; set; } // uniqueness check!!!
 
-    public int Price
+    public required int Price
     {
         get { return _productPrice; }
         set
@@ -17,7 +17,7 @@ public class Product
         }
     }
 
-    public int Quantity
+    public required int Quantity
     {
         get { return _productQuantity; }
         set
@@ -33,6 +33,8 @@ public class Product
         get { return _productQuantity > 0; }
     }
 
+    public Product()
+    {}
     public Product(int id, string name, int price, int quantity)
     {
         Id = id;
@@ -57,8 +59,17 @@ public class Product
         Quantity += pieces;
     }
 
-    public string InfoOutput()
+    public string AdminInfoOutput()
     {
-        return $"{Name} (id {Id}): price {Price} RUB, in stock {Quantity}";
+        if (InStock)
+            return $"{Name} (id {Id}): price {Price} RUB, in stock {Quantity}";
+        return $"{Name} (id {Id}): price {Price} RUB - OUT OF STOCK";
+    }
+
+    public string? ConsumerInfoOutput()
+    {
+        if (InStock)
+            return $"{Name} (id {Id}): price {Price} RUB, in stock {Quantity}";
+        return null;
     }
 }
