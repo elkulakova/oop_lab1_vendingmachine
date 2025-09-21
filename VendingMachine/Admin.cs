@@ -8,9 +8,6 @@ public class Admin
         if (password != "admin_password")
             throw new ArgumentException("you cannot log in as an admin untill you enter the valid pasword");
 
-        if (string.IsNullOrEmpty(password) || string.IsNullOrWhiteSpace(password))
-            throw new ArgumentException("admin password cannot be empty");
-
         Console.WriteLine("you are authorized as admin!");
     }
 
@@ -21,13 +18,15 @@ public class Admin
         string? products_temp = Console.ReadLine();
 
         if (int.TryParse(products_temp, out int prod_num))
+        {
             switch (prod_num)
             {
-                case <= 0:
+                case < 0:
                     do
                     {
                         Console.WriteLine("you must enter a positive integer value");
-                    } while (prod_num == 0);
+                        _ = Console.ReadLine();
+                    } while (prod_num < 0);
                     return; // here we don't need to break the code, we need to wait till the right value is not entered
 
                 default:
@@ -72,6 +71,11 @@ public class Admin
                     }
                     return;
             }
+        }
+        else
+        {
+
+        }
     }
 
     public static void RefillProducts(VendingMachine machine)
@@ -81,13 +85,13 @@ public class Admin
 
         if (int.TryParse(str_types, out int types_num))
         {
-            if (types_num <= 0)
+            if (types_num < 0)
             {
                 do
                 {
                     Console.WriteLine("types number must be a positive integer. try again");
                     _ = Console.ReadLine();
-                } while (types_num <= 0);
+                } while (types_num < 0);
             }
             else
             {
@@ -134,6 +138,10 @@ public class Admin
                     }
                 }
             }
+
+        }
+        else
+        {
 
         }
     }
