@@ -17,64 +17,53 @@ public class Admin
         Console.WriteLine("how many product types do you want to add? enter an integer value.");
         string? products_temp = Console.ReadLine();
 
-        if (int.TryParse(products_temp, out int prod_num))
-        {
-            switch (prod_num)
-            {
-                case < 0:
-                    do
-                    {
-                        Console.WriteLine("you must enter a positive integer value");
-                        _ = Console.ReadLine();
-                    } while (prod_num < 0);
-                    return; // here we don't need to break the code, we need to wait till the right value is not entered
+        int prod_num;
 
-                default:
-                    for (int i = 0; i < prod_num; i++)
-                    {
-                        Console.WriteLine("enter product id (int), product name (string), product price (int) and product quantity (int), separate with comma");
-                        string? input_prod = Console.ReadLine();
-                        if (string.IsNullOrEmpty(input_prod) || string.IsNullOrWhiteSpace(input_prod))
-                        {
-                            Console.WriteLine("enter product data in a correct way");
-                        }
-                        else
-                        {
-                            var parts = input_prod.Split(", ");
-                            if (parts.Length == 4)
-                            {
-                                string name = parts[1];
-                                if (int.TryParse(parts[0], out int id) && int.TryParse(parts[2], out int price) && int.TryParse(parts[3], out int quantity))
-                                {
-                                    if (!machine.IdSet.Contains(id))
-                                    {
-                                        Product product_exemp = new Product { Id = id, Name = name, Price = price, Quantity = quantity };
-                                        machine.AvailableProducts.Add(product_exemp);
-                                        machine.IdSet.Add(id);
-                                    }
-                                    else
-                                    {
-                                        Product existingProduct = machine.AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
-                                        Console.WriteLine($"id {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
-                                    }
-                                }
-                                else
-                                {
-                                    throw new ArgumentException("wrong format. try again");
-                                }
-                            }
-                            else
-                            {
-                                throw new ArgumentException("wrong format. try again");
-                            }
-                        }
-                    }
-                    return;
-            }
+        while (!int.TryParse(products_temp, out prod_num) || prod_num < 0)
+        {
+            Console.WriteLine("you must enter a positive integer value");
+            products_temp = Console.ReadLine();
         }
-        else
-        {
 
+        for (int i = 0; i < prod_num; i++)
+        {
+            Console.WriteLine("enter product id (int), product name (string), product price (int) and product quantity (int), separate with comma.\nformat example: 1, water 'saint spring', 50, 100.");
+            string? input_prod = Console.ReadLine();
+
+            if (string.IsNullOrEmpty(input_prod) || string.IsNullOrWhiteSpace(input_prod))
+            {
+                Console.WriteLine("enter product data in a correct way");
+                continue;
+            }
+
+            var parts = input_prod.Split(", ");
+
+            if (parts.Length != 4)
+            {
+                Console.WriteLine("enter product data in a correct way");
+                continue;
+            }
+
+            string name = parts[1];
+
+            if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[2], out int price) || price < 0 || !int.TryParse(parts[3], out int quantity) || quantity < 0)
+            {
+                Console.WriteLine("enter product data in a correct way");
+                continue;
+            }
+
+            if (!machine.IdSet.Contains(id))
+            {
+                Product product_exemp = new() { Id = id, Name = name, Price = price, Quantity = quantity };
+                machine.AvailableProducts.Add(product_exemp);
+                machine.IdSet.Add(id);
+            }
+            else // since id in the set
+            {
+                Product existingProduct = machine.AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
+                Console.WriteLine($"id {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
+                //i--; // do we need it??
+            }
         }
     }
 
@@ -83,66 +72,54 @@ public class Admin
         Console.WriteLine("how many types of products do you want to refill? enter an integer value.");
         string? str_types = Console.ReadLine();
 
-        if (int.TryParse(str_types, out int types_num))
+        int types_num;
+
+        while (!int.TryParse(str_types, out types_num) || types_num < 0)
         {
-            if (types_num < 0)
-            {
-                do
-                {
-                    Console.WriteLine("types number must be a positive integer. try again");
-                    _ = Console.ReadLine();
-                } while (types_num < 0);
-            }
-            else
-            {
-                for (int i = 0; i < types_num; i++)
-                {
-                    Console.WriteLine("enter prodict id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount} (without curly braces, just 2 intengers separsted by a comma)");
-                    string? prod_data = Console.ReadLine();
-
-                    if (string.IsNullOrEmpty(prod_data) || string.IsNullOrWhiteSpace(prod_data))
-                    {
-                        Console.WriteLine("enter product data in a correct way");
-                    }
-                    else
-                    {
-                        var parts = prod_data.Split(", ");
-                        if (parts.Length == 2)
-                        {
-                            if (int.TryParse(parts[0], out int id) && int.TryParse(parts[1], out int quantity))
-                            {
-                                Product? foundProduct = machine.AvailableProducts.FirstOrDefault(product => product.Id == id);
-
-                                if (foundProduct is null)
-                                {
-                                    do
-                                    {
-                                        Console.WriteLine($"there is no product with id {id}. try entering data again");
-                                        _ = Console.ReadLine();
-                                    } while (foundProduct is null);
-                                }
-                                else
-                                {
-                                    foundProduct.Quantity += quantity;
-                                }
-                            }
-                            else
-                            {
-                                throw new ArgumentException("wrong format. id must exist and amount must be positive. try again");
-                            }
-                        }
-                        else
-                        {
-                            throw new ArgumentException("wrong format. acceptable format: {ProductId}, {ProductAmount}. try again");
-                        }
-                    }
-                }
-            }
-
+            Console.WriteLine("types number must be a positive integer. try again");
+            str_types = Console.ReadLine();
         }
-        else
-        {
 
+        for (int i = 0; i < types_num; i++)
+        {
+            Console.WriteLine("enter prodict id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount} (without curly braces, just 2 intengers separsted by a comma)");
+            string? prod_data = Console.ReadLine();
+
+            bool success = false;
+
+            while (!success)
+            {
+                if (string.IsNullOrEmpty(prod_data) || string.IsNullOrWhiteSpace(prod_data))
+                {
+                    Console.WriteLine("\nenter product data in a correct way");
+                    continue;
+                }
+
+                var parts = prod_data.Split(", ");
+                if (parts.Length != 2)
+                {
+                    Console.WriteLine("\nwrong format. use: ProductId, ProductAmount. try again:");
+                    continue;
+                }
+
+                if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[1], out int quantity) || quantity < 0)
+                {
+                    Console.WriteLine("\nwrong format. id must exist and amount must be positive. try again");
+                    continue;
+                }
+
+                Product? foundProduct = machine.AvailableProducts.FirstOrDefault(product => product.Id == id);
+
+                if (foundProduct is null)
+                {
+                    Console.WriteLine($"\nthere is no product with id {id}. try entering the data again");
+                    continue;
+                }
+
+                foundProduct.Quantity += quantity;
+                Console.WriteLine($"\nyou refilled {foundProduct.Name} (id {foundProduct.Id}) by {quantity} pieces. now the amount is {foundProduct.Quantity}");
+                success = true;
+            }
         }
     }
 
@@ -162,12 +139,17 @@ public class Admin
                     Console.WriteLine(info);
             }
             Console.WriteLine("choose an option to do:\n1. refill existing products\n2. add new product");
-            string? option = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
+            string? option;
+            do
             {
-                throw new ArgumentException("choose the task to do, input cannot be empty.");
-            }
+                option = Console.ReadLine();
+                if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
+                {
+                    Console.WriteLine("choose the task to do, input cannot be empty.");
+                }
+            } while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option));
+
             switch (option.ToLower().Trim())
             {
                 case "1. refill existing products":
@@ -189,6 +171,11 @@ public class Admin
                     Console.WriteLine("Adding...."); // gap closure
                     AddNewPositions(machine);
                     ChooseTask(machine);
+                    return;
+
+                default:
+                    Console.WriteLine("invalid option. please choose 1 or 2.");
+                    RefillAddProducts(machine);
                     return;
             }
         }
@@ -213,11 +200,6 @@ public class Admin
         }
 
         Console.WriteLine("cash desk is empty now");
-    }
-
-    public static void ExitProgram(VendingMachine machine)
-    {
-
     }
 
     public static void ChooseTask(VendingMachine machine)
@@ -253,6 +235,7 @@ public class Admin
             case "exit":
             case "3":
                 Console.WriteLine("Exiting program...."); // gap closure
+                machine.ShutDown();
                 return;
         }
     }

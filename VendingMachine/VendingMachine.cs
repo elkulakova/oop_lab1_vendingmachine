@@ -1,8 +1,11 @@
+using System.Diagnostics.Metrics;
+using System.Numerics;
+
 public class VendingMachine
 {
-    public List<Product> AvailableProducts = []; // filled be Admin
+    public List<Product> AvailableProducts = []; // filled by Admin
 
-    public HashSet<int> IdSet = []; // filled be Admin
+    public HashSet<int> IdSet = []; // filled by Admin
 
     public Dictionary<int, int> CashDesk = Coin.Faces.ToDictionary(k => k, k => 0); // filled automatically
 
@@ -26,7 +29,9 @@ public class VendingMachine
             Console.WriteLine($"\nyou need to pay {purchase_sum} RUB.\nnow you need to enter amount of money you want to pay");
 
             int topay = 0;
+            Dictionary<int, int> purchase_dict = [];
             bool paid = false;
+
             while (!paid)
             {
                 foreach (var entry in user_purse.Where(e => e.Value > 0).ToList())
@@ -45,6 +50,9 @@ public class VendingMachine
                         {
                             topay += entry.Key * num;
                             user_purse[entry.Key] -= num;
+
+                            CashDesk[entry.Key] += num;
+                            purchase_dict.Add(entry.Key, num);
                             Console.WriteLine($"{topay} deposited");
                         }
                         //else
@@ -58,24 +66,42 @@ public class VendingMachine
                     }
                 }
             }
-            Product? foundProduct = AvailableProducts.FirstOrDefault(prod => prod.Id == id);
 
-            foundProduct!.Quantity -= amount;
+            Product foundProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
+            foundProduct.Quantity -= amount;
+
+            if (topay > purchase_sum)
+            {
+                int user_charge = topay - purchase_sum;
+                var charge = GiveCharge(user_charge);
+
+                foreach (var entry in charge)
+                {
+                    user_purse[entry.Key] += entry.Value;
+                }
+                Console.WriteLine($"your charge {user_charge} RUB has been refund");
+            }
         }
         else
         {
             Console.WriteLine("sorry, you don't have enough money. goodbye");
+
         }
     }
 
-    public void GiveCharge()
+    public Dictionary<int, int> GiveCharge(int charge)
     {
-
+        Dictionary<int, int> charge_dict = [];
+        //TO DO: write a cycle of giving charge
+        return charge_dict;
     }
 
-    public void RefundMoney()
+    public static void RefundMoney(Dictionary<int, int> user_money, Dictionary<int, int> user_purse)
     {
-
+        foreach (var entry in user_money)
+        {
+            user_purse[entry.Key] += entry.Value;
+        }
     }
 
     public void Purchase(Dictionary<int, int> user_purse)
@@ -185,6 +211,11 @@ public class VendingMachine
         {
             Console.WriteLine($"{ex.Message}");
         }
+    }
+
+    public void ShutDown()
+    {
+
     }
 
     public void MachineStart()
