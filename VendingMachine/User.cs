@@ -6,6 +6,7 @@ public class User
 
     public User()
     {
+        Console.WriteLine("\nlet's fill your purse with coins/banknotes of different faces");
         UserPurse = Coin.Faces.ToDictionary(k => k, k => 0);
 
         foreach (int face in Coin.Faces)

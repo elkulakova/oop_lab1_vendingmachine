@@ -14,11 +14,13 @@ public class VendingMachine
     {
     }
 
-    public void Payment(int id, int price, int amount, Dictionary<int, int> user_purse)
+    public string Payment(int id, int price, int amount, Dictionary<int, int> user_purse)
     {
         int purchase_sum = price * amount;
 
         int user_summa = 0;
+
+        bool cancelled = false;
 
         foreach (var entry in user_purse)
         {
@@ -28,12 +30,20 @@ public class VendingMachine
         if (user_summa >= purchase_sum)
         {
             Console.WriteLine($"\nyou need to pay {purchase_sum} RUB.\nnow you need to enter amount of money you want to pay");
+            Console.WriteLine("you can cancel your purchase any moment. just enter 'cancel' in the command line.");
+
+            // show user purse again
+            Console.WriteLine("\nhere is the content of your purse:");
+            foreach (var entry in user_purse)
+            {
+                Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
+            }
 
             int topay = 0;
             Dictionary<int, int> purchase_dict = [];
             bool paid = false;
 
-            while (!paid)
+            while (!paid && !cancelled)
             {
                 foreach (var entry in user_purse.Where(e => e.Value > 0).ToList())
                 {
@@ -50,6 +60,12 @@ public class VendingMachine
                         int num;
                         while (!int.TryParse(pieces, out num) || num < 0 || num > entry.Value)
                         {
+                            if (pieces == "cancel")
+                            {
+                                cancelled = true;
+                                return "cancelled";
+                            }
+
                             Console.WriteLine("\ninvalid value. try again");
                             pieces = Console.ReadLine();
 
@@ -79,20 +95,27 @@ public class VendingMachine
                 string result = GiveCharge(user_change, user_purse, purchase_dict);
                 if (result == "change")
                 {
-                    Product foundProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
-                    foundProduct.Quantity -= amount;
-                    Console.WriteLine($"\nyou have successfully bought {amount} pieces of {foundProduct.Name} (id {foundProduct.Id}). enjoy your product(s)!");
+                    Product innerProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
+                    innerProduct.Quantity -= amount;
+                    Console.WriteLine($"\nyou have successfully bought {amount} pieces of {innerProduct.Name} (id {innerProduct.Id}). enjoy your product(s)!");
+                    return "success";
+                }
+                if (result == "refund")
+                {
+                    return "refund";
                 }
             }
 
-            if (topay == purchase_sum)
-            {
-                Console.WriteLine("\nthank you for exact payment");
-            }
+            Console.WriteLine("\nthank you for exact payment");
+            Product foundProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
+            foundProduct.Quantity -= amount;
+            Console.WriteLine($"\nyou have successfully bought {amount} piece(s) of {foundProduct.Name} (id {foundProduct.Id}). enjoy your product(s)!");
+            return "success";
         }
         else
         {
-            Console.WriteLine("sorry, you don't have enough money. goodbye");
+            Console.WriteLine("sorry, you don't have enough money. choose another product");
+            return "no_money";
         }
     }
 
@@ -126,7 +149,7 @@ public class VendingMachine
         if (remaining > 0)
         {
             RefundMoney(money_dict, user_purse);
-            Console.WriteLine("\nsorry, there is no enough charge in the machine. your money has been refund. goodbye");
+            Console.WriteLine("\nsorry, there is no enough charge in the machine. your money has been refunded");
             return "refund";
         }
         else
@@ -197,14 +220,25 @@ public class VendingMachine
             }
 
             int prod_price = foundProduct.Price;
-            Console.WriteLine($"your {i + 1}/{items_num} product: {foundProduct.Name} (id {foundProduct.Id}), price {foundProduct.Price} RUB, amount - {amount} pieces.");
-            Payment(id, prod_price, amount, user_purse);
+            Console.WriteLine($"your {i + 1}/{items_num} product: {foundProduct.Name} (id {foundProduct.Id}), price {foundProduct.Price} RUB, amount - {amount} piece(s).");
+            var res = Payment(id, prod_price, amount, user_purse);
+            if (res == "refund" || res == "no_money" || res == "cancelled")
+            {
+                i--;
+                continue;
+            }
         }
     }
 
-    public void UserScenario()
+    public void UserScenario(User consumer)
     {
-        User consumer = new();
+        Console.WriteLine("\nhello, user! ready to choose?");
+        // show purse
+        Console.WriteLine("\nhere is the content of your purse:");
+        foreach (var entry in consumer.UserPurse)
+        {
+            Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
+        }
 
         Console.WriteLine("\nhere is the list of available products:");
 
@@ -216,7 +250,7 @@ public class VendingMachine
             }
         }
 
-        Console.WriteLine("\nwant to buy something? (yes/no&exit)");
+        Console.WriteLine("\nwant to buy something? (yes/no)");
         string? answer = Console.ReadLine();
 
         while (string.IsNullOrEmpty(answer) || string.IsNullOrWhiteSpace(answer))
@@ -231,18 +265,42 @@ public class VendingMachine
             case "y":
             case "1":
                 Purchase(consumer.UserPurse);
+                UserScenario(consumer);
                 return;
 
             case "no":
             case "n":
             case "2":
-            case "exit":
-            case "e":
-            case "3":
-            case "no&exit":
-                Console.WriteLine("\ngoodbye!");
-                ShutDown();
-                return;
+                Console.WriteLine("\nwant to change role? (yes/no&exit)");
+                string? ans = Console.ReadLine();
+
+                while (string.IsNullOrEmpty(ans) || string.IsNullOrWhiteSpace(ans))
+                {
+                    Console.WriteLine("entered answer cannot be empty. try again");
+                    ans = Console.ReadLine();
+                }
+                switch (ans.ToLower().Trim())
+                {
+                    case "yes":
+                    case "y":
+                    case "1":
+                        Console.WriteLine("\nchanging role to admin...."); // gap closure
+                        AdminScenario();
+                        return;
+
+                    case "no&exit":
+                    case "no":
+                    case "n":
+                    case "2":
+                        Console.WriteLine("\ngoodbye!");
+                        ShutDown();
+                        return;
+
+                    default:
+                        Console.WriteLine("wrong answer. try again");
+                        UserScenario(consumer);
+                        return;
+                }
         }
     }
 
@@ -259,7 +317,7 @@ public class VendingMachine
             //throw new ArgumentException("admin password cannot be empty");
         try
         {
-            var admin = new Admin(password);
+            var admin = new Admin(password, this);
 
             Admin.ChooseTask(this);
         }
@@ -277,33 +335,43 @@ public class VendingMachine
     public void MachineStart()
     {
         Console.WriteLine("\nhello! you've started a Vending Machine");
-        Console.WriteLine("\nchoose your role: user or admin");
-        string? role = Console.ReadLine();
-
-        while (string.IsNullOrEmpty(role) || string.IsNullOrWhiteSpace(role))
+        if (AvailableProducts.Count == 0)
         {
-            Console.WriteLine("\nentered role cannot be empty. try again");
-            role = Console.ReadLine();
+            Console.WriteLine("\nthere are no products added yet. you need to login as admin to add new products.");
+            AdminScenario();
+            MachineStart();
+            return;
         }
-
-        switch (role.ToLower().Trim())
+        else
         {
-            case "user":
-            case "1":
-                Console.WriteLine("\nhello, user! ready to choose?");
-                UserScenario();
-                return;
+            Console.WriteLine("\nchoose your role: user or admin");
+            string? role = Console.ReadLine();
 
-            case "admin":
-            case "2":
-                AdminScenario();
-                return;
+            while (string.IsNullOrEmpty(role) || string.IsNullOrWhiteSpace(role))
+            {
+                Console.WriteLine("\nentered role cannot be empty. try again");
+                role = Console.ReadLine();
+            }
 
-            default:
-                Console.WriteLine("\nwrong role. try again");
-                MachineStart();
-                return;
-                //throw new ArgumentException("wrong role. try again"); --- IGNORE ---
+            switch (role.ToLower().Trim())
+            {
+                case "user":
+                case "1":
+                    User user = new();
+                    UserScenario(user);
+                    return;
+
+                case "admin":
+                case "2":
+                    AdminScenario();
+                    return;
+
+                default:
+                    Console.WriteLine("\nwrong role. try again");
+                    MachineStart();
+                    return;
+                    //throw new ArgumentException("wrong role. try again"); --- IGNORE ---
+            }
         }
     }
 }

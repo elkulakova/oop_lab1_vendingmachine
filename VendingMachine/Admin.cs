@@ -3,17 +3,21 @@ using System.Reflection.PortableExecutable;
 
 public class Admin
 {
-    public Admin(string password)
+    public Admin(string password, VendingMachine machine)
     {
         if (password != "admin_password")
-            throw new ArgumentException("\nyou cannot log in as an admin untill you enter the valid pasword");
-
-        Console.WriteLine("\nyou are authorized as admin!");
+        {
+            Console.WriteLine("\nyou cannot log in as an admin untill you enter the valid pasword");
+            machine.MachineStart();
+        }
+        else
+        {
+            Console.WriteLine("\nyou are authorized as admin!");
+        }
     }
 
     public static void AddNewPositions(VendingMachine machine)
     {
-        Console.WriteLine("\nthere are no products added yet.");
         Console.WriteLine("\nhow many product types do you want to add? enter an integer value.");
         string? products_temp = Console.ReadLine();
 
@@ -65,7 +69,7 @@ public class Admin
             {
                 Product existingProduct = machine.AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
                 Console.WriteLine($"\nid {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
-                //i--; // do we need it?? think no, since admin wanted to add this product also and it is included in the total amount of products to add
+                i--; // do we need it?? think no, since admin wanted to add this product also and it is included in the total amount of products to add
                 continue;
             }
         }
@@ -135,6 +139,7 @@ public class Admin
     {
         if (machine.AvailableProducts.Count == 0)
         {
+            Console.WriteLine("\nthere are no products added yet.");
             AddNewPositions(machine);
         }
         else
@@ -146,7 +151,7 @@ public class Admin
                 if (info is not null)
                     Console.WriteLine(info);
             }
-            Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product");
+            Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product\n3. exit to main menu");
 
             string? option;
             do
@@ -165,7 +170,7 @@ public class Admin
                 case "refill products":
                 case "refill":
                 case "1":
-                    Console.WriteLine("\nRefilling...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
+                    Console.WriteLine("\nrefilling products...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
                     RefillProducts(machine);
                     ChooseTask(machine);
                     return;
@@ -176,8 +181,16 @@ public class Admin
                 case "add new":
                 case "add":
                 case "2":
-                    Console.WriteLine("\nAdding...."); // gap closure
+                    Console.WriteLine("\nadding new products...."); // gap closure
                     AddNewPositions(machine);
+                    ChooseTask(machine);
+                    return;
+
+                case "3. exit to main menu":
+                case "exit to main menu":
+                case "exit":
+                case "3":
+                    Console.WriteLine("\nexiting to main menu...."); // gap closure
                     ChooseTask(machine);
                     return;
 
@@ -197,7 +210,7 @@ public class Admin
         foreach (var entry in cashDesk)
         {
             summa += entry.Key * entry.Value;
-            Console.WriteLine($"\n{entry.Key}-coin x {entry.Value} pieces");
+            Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
         }
 
         Console.WriteLine($"\n{summa} RUB collected");
@@ -212,7 +225,7 @@ public class Admin
 
     public static void ChooseTask(VendingMachine machine)
     {
-        Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. exit program.");
+        Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. change role;\n4. exit program.");
         string? option = Console.ReadLine();
 
         while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
@@ -227,8 +240,9 @@ public class Admin
             case "refill products":
             case "refill":
             case "1":
-                Console.WriteLine("\nRefilling...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
+                Console.WriteLine("\nrefilling products...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
                 RefillAddProducts(machine);
+                ChooseTask(machine);
                 return;
 
             case "2. collect the recieved money":
@@ -236,15 +250,25 @@ public class Admin
             case "collect money":
             case "collect":
             case "2":
-                Console.WriteLine("\nColecting money...."); // gap closure
+                Console.WriteLine("\ncollecting money...."); // gap closure
                 CollectMoney(machine);
+                ChooseTask(machine);
                 return;
 
-            case "3. exit program":
+            case "3. change role":
+            case "change role":
+            case "change":
+            case "3":
+                Console.WriteLine("\nchanging role to user...."); // gap closure
+                User user = new();
+                machine.UserScenario(user);
+                return;
+
+            case "4. exit program":
             case "exit program":
             case "exit":
-            case "3":
-                Console.WriteLine("\nExiting program...."); // gap closure
+            case "4":
+                Console.WriteLine("\nexiting program...."); // gap closure
                 VendingMachine.ShutDown();
                 return;
         }
