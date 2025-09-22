@@ -33,10 +33,10 @@ public class VendingMachine
             Console.WriteLine("you can cancel your purchase any moment. just enter 'cancel' in the command line.");
 
             // show user purse again
-            Console.WriteLine("\nhere is the content of your purse:");
+            Console.WriteLine("\nhere is the content of your purse:\n");
             foreach (var entry in user_purse)
             {
-                Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
+                Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
             }
 
             int topay = 0;
@@ -149,7 +149,7 @@ public class VendingMachine
         if (remaining > 0)
         {
             RefundMoney(money_dict, user_purse);
-            Console.WriteLine("\nsorry, there is no enough charge in the machine. your money has been refunded");
+            Console.WriteLine($"\nsorry, there is not enough change in the machine/there is enough change but there is no possibility to give you precisely {change} RUB. your money has been refunded");
             return "refund";
         }
         else
@@ -195,7 +195,7 @@ public class VendingMachine
                 i--;
                 continue;
             }
-            var parts = desire.Split(", ");
+            var parts = desire.Split(",");
             if (parts.Length != 2)
             {
                 Console.WriteLine("wrong format. try again. format example: 123, 5.");
@@ -203,7 +203,7 @@ public class VendingMachine
                 continue;
             }
 
-            if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[1], out int amount) || amount <= 0)
+            if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int amount) || amount <= 0)
             {
                 Console.WriteLine("wrong format. try again. format example: 123, 5.");
                 i--;
@@ -237,16 +237,16 @@ public class VendingMachine
         Console.WriteLine("\nhere is the content of your purse:");
         foreach (var entry in consumer.UserPurse)
         {
-            Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
+            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
         }
 
-        Console.WriteLine("\nhere is the list of available products:");
+        Console.WriteLine("\nhere is the list of available products:\n");
 
         foreach (Product prod in AvailableProducts)
         {
             if (prod.ConsumerInfoOutput() is not null)
             {
-                Console.WriteLine($"\n{prod.ConsumerInfoOutput()}");
+                Console.WriteLine($"{prod.ConsumerInfoOutput()}");
             }
         }
 
@@ -297,7 +297,7 @@ public class VendingMachine
                         return;
 
                     default:
-                        Console.WriteLine("wrong answer. try again");
+                        Console.WriteLine("wrong input. try again");
                         UserScenario(consumer);
                         return;
                 }
@@ -370,7 +370,6 @@ public class VendingMachine
                     Console.WriteLine("\nwrong role. try again");
                     MachineStart();
                     return;
-                    //throw new ArgumentException("wrong role. try again"); --- IGNORE ---
             }
         }
     }

@@ -43,22 +43,6 @@ public class Product
         Quantity = quantity;
     }
 
-    public void BuyProduct(int pieces = 1)
-    {
-        if (pieces <= 0)
-            throw new ArgumentException("you can bought only positive number of products!");
-        if (Quantity < pieces)
-            throw new ArgumentException($"you can't buy more pieces of the {Name}, there is/are only {Quantity} in stock.");
-        Quantity -= pieces;
-    }
-
-    public void RefillProduct(int pieces = 1)
-    {
-        if (pieces <= 0)
-            throw new ArgumentException("you can refill only with positive number of products!");
-        Quantity += pieces;
-    }
-
     public string AdminInfoOutput()
     {
         if (InStock)

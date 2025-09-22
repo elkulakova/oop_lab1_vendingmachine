@@ -41,7 +41,7 @@ public class Admin
                 continue;
             }
 
-            var parts = input_prod.Split(", ");
+            var parts = input_prod.Split(",");
 
             if (parts.Length != 4)
             {
@@ -50,9 +50,9 @@ public class Admin
                 continue;
             }
 
-            string name = parts[1];
+            string name = parts[1].Trim();
 
-            if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[2], out int price) || price < 0 || !int.TryParse(parts[3], out int quantity) || quantity <= 0)
+            if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[2].Trim(), out int price) || price < 0 || !int.TryParse(parts[3].Trim(), out int quantity) || quantity <= 0)
             {
                 Console.WriteLine("\nenter product data in a correct way");
                 i--;
@@ -104,7 +104,7 @@ public class Admin
                     continue;
                 }
 
-                var parts = prod_data.Split(", ");
+                var parts = prod_data.Split(",");
                 if (parts.Length != 2)
                 {
                     Console.WriteLine("\nwrong format. use: ProductId, ProductAmount. try again:");
@@ -112,7 +112,7 @@ public class Admin
                     continue;
                 }
 
-                if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[1], out int quantity) || quantity <= 0)
+                if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int quantity) || quantity <= 0)
                 {
                     Console.WriteLine("\nwrong format. id must exist and amount must be positive. try again");
                     i--;
