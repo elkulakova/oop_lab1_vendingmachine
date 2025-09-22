@@ -6,33 +6,34 @@ public class Admin
     public Admin(string password)
     {
         if (password != "admin_password")
-            throw new ArgumentException("you cannot log in as an admin untill you enter the valid pasword");
+            throw new ArgumentException("\nyou cannot log in as an admin untill you enter the valid pasword");
 
-        Console.WriteLine("you are authorized as admin!");
+        Console.WriteLine("\nyou are authorized as admin!");
     }
 
     public static void AddNewPositions(VendingMachine machine)
     {
-        Console.WriteLine("there are no products added yet.");
-        Console.WriteLine("how many product types do you want to add? enter an integer value.");
+        Console.WriteLine("\nthere are no products added yet.");
+        Console.WriteLine("\nhow many product types do you want to add? enter an integer value.");
         string? products_temp = Console.ReadLine();
 
         int prod_num;
 
-        while (!int.TryParse(products_temp, out prod_num) || prod_num < 0)
+        while (!int.TryParse(products_temp, out prod_num) || prod_num <= 0)
         {
-            Console.WriteLine("you must enter a positive integer value");
+            Console.WriteLine("\nyou must enter a positive integer value");
             products_temp = Console.ReadLine();
         }
 
         for (int i = 0; i < prod_num; i++)
         {
-            Console.WriteLine("enter product id (int), product name (string), product price (int) and product quantity (int), separate with comma.\nformat example: 1, water 'saint spring', 50, 100.");
+            Console.WriteLine("\nenter product id (int), product name (string), product price (int) and product quantity (int), separate with comma.\nformat example: 1, water 'saint spring', 50, 100.");
             string? input_prod = Console.ReadLine();
 
             if (string.IsNullOrEmpty(input_prod) || string.IsNullOrWhiteSpace(input_prod))
             {
-                Console.WriteLine("enter product data in a correct way");
+                Console.WriteLine("\nenter product data in a correct way");
+                i--;
                 continue;
             }
 
@@ -40,15 +41,17 @@ public class Admin
 
             if (parts.Length != 4)
             {
-                Console.WriteLine("enter product data in a correct way");
+                Console.WriteLine("\nenter product data in a correct way");
+                i--;
                 continue;
             }
 
             string name = parts[1];
 
-            if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[2], out int price) || price < 0 || !int.TryParse(parts[3], out int quantity) || quantity < 0)
+            if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[2], out int price) || price < 0 || !int.TryParse(parts[3], out int quantity) || quantity <= 0)
             {
-                Console.WriteLine("enter product data in a correct way");
+                Console.WriteLine("\nenter product data in a correct way");
+                i--;
                 continue;
             }
 
@@ -61,28 +64,29 @@ public class Admin
             else // since id in the set
             {
                 Product existingProduct = machine.AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
-                Console.WriteLine($"id {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
-                //i--; // do we need it??
+                Console.WriteLine($"\nid {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
+                //i--; // do we need it?? think no, since admin wanted to add this product also and it is included in the total amount of products to add
+                continue;
             }
         }
     }
 
     public static void RefillProducts(VendingMachine machine)
     {
-        Console.WriteLine("how many types of products do you want to refill? enter an integer value.");
+        Console.WriteLine("\nhow many types of products do you want to refill? enter an integer value.");
         string? str_types = Console.ReadLine();
 
         int types_num;
 
-        while (!int.TryParse(str_types, out types_num) || types_num < 0)
+        while (!int.TryParse(str_types, out types_num) || types_num <= 0)
         {
-            Console.WriteLine("types number must be a positive integer. try again");
+            Console.WriteLine("\ntypes number must be a positive integer. try again");
             str_types = Console.ReadLine();
         }
 
         for (int i = 0; i < types_num; i++)
         {
-            Console.WriteLine("enter prodict id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount} (without curly braces, just 2 intengers separsted by a comma)");
+            Console.WriteLine("\nenter prodict id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount} (without curly braces, just 2 intengers separsted by a comma)");
             string? prod_data = Console.ReadLine();
 
             bool success = false;
@@ -92,6 +96,7 @@ public class Admin
                 if (string.IsNullOrEmpty(prod_data) || string.IsNullOrWhiteSpace(prod_data))
                 {
                     Console.WriteLine("\nenter product data in a correct way");
+                    i--;
                     continue;
                 }
 
@@ -99,12 +104,14 @@ public class Admin
                 if (parts.Length != 2)
                 {
                     Console.WriteLine("\nwrong format. use: ProductId, ProductAmount. try again:");
+                    i--;
                     continue;
                 }
 
-                if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[1], out int quantity) || quantity < 0)
+                if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[1], out int quantity) || quantity <= 0)
                 {
                     Console.WriteLine("\nwrong format. id must exist and amount must be positive. try again");
+                    i--;
                     continue;
                 }
 
@@ -113,6 +120,7 @@ public class Admin
                 if (foundProduct is null)
                 {
                     Console.WriteLine($"\nthere is no product with id {id}. try entering the data again");
+                    i--;
                     continue;
                 }
 
@@ -131,14 +139,14 @@ public class Admin
         }
         else
         {
-            Console.WriteLine("here are the list of available products:\n");
+            Console.WriteLine("\nhere are the list of available products:\n");
             foreach (Product product in machine.AvailableProducts.Cast<Product>())
             {
                 string? info = product.AdminInfoOutput();
-                if (info != null)
+                if (info is not null)
                     Console.WriteLine(info);
             }
-            Console.WriteLine("choose an option to do:\n1. refill existing products\n2. add new product");
+            Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product");
 
             string? option;
             do
@@ -146,7 +154,7 @@ public class Admin
                 option = Console.ReadLine();
                 if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
                 {
-                    Console.WriteLine("choose the task to do, input cannot be empty.");
+                    Console.WriteLine("\nchoose the task to do, input cannot be empty.");
                 }
             } while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option));
 
@@ -157,7 +165,7 @@ public class Admin
                 case "refill products":
                 case "refill":
                 case "1":
-                    Console.WriteLine("Refilling...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
+                    Console.WriteLine("\nRefilling...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
                     RefillProducts(machine);
                     ChooseTask(machine);
                     return;
@@ -168,13 +176,13 @@ public class Admin
                 case "add new":
                 case "add":
                 case "2":
-                    Console.WriteLine("Adding...."); // gap closure
+                    Console.WriteLine("\nAdding...."); // gap closure
                     AddNewPositions(machine);
                     ChooseTask(machine);
                     return;
 
                 default:
-                    Console.WriteLine("invalid option. please choose 1 or 2.");
+                    Console.WriteLine("\ninvalid option. please choose 1 or 2.");
                     RefillAddProducts(machine);
                     return;
             }
@@ -199,7 +207,7 @@ public class Admin
             cashDesk[face] = 0;
         }
 
-        Console.WriteLine("cash desk is empty now");
+        Console.WriteLine("\ncash desk is empty now");
     }
 
     public static void ChooseTask(VendingMachine machine)
@@ -207,17 +215,19 @@ public class Admin
         Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. exit program.");
         string? option = Console.ReadLine();
 
-        if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
+        while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
         {
-            throw new ArgumentException("choose the task to do, input cannot be empty.");
+            Console.WriteLine("\nchoose the task to do, input cannot be empty.");
+            option = Console.ReadLine();
         }
+
         switch (option.ToLower().Trim())
         {
             case "1. refill products":
             case "refill products":
             case "refill":
             case "1":
-                Console.WriteLine("Refilling...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
+                Console.WriteLine("\nRefilling...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
                 RefillAddProducts(machine);
                 return;
 
@@ -226,7 +236,7 @@ public class Admin
             case "collect money":
             case "collect":
             case "2":
-                Console.WriteLine("Colecting money...."); // gap closure
+                Console.WriteLine("\nColecting money...."); // gap closure
                 CollectMoney(machine);
                 return;
 
@@ -234,8 +244,8 @@ public class Admin
             case "exit program":
             case "exit":
             case "3":
-                Console.WriteLine("Exiting program...."); // gap closure
-                machine.ShutDown();
+                Console.WriteLine("\nExiting program...."); // gap closure
+                VendingMachine.ShutDown();
                 return;
         }
     }
