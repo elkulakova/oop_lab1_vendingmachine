@@ -3,10 +3,10 @@ public class Product
     private int _productPrice;
     private int _productQuantity;
 
-    public required string Name { get; set; }
-    public required int Id { get; set; } // uniqueness check – in VendingMachine IdSet
+    public string Name { get; set; }
+    public int Id { get; set; } // uniqueness check – in VendingMachine IdSet
 
-    public required int Price
+    public int Price
     {
         get { return _productPrice; }
         set
@@ -17,7 +17,7 @@ public class Product
         }
     }
 
-    public required int Quantity
+    public int Quantity
     {
         get { return _productQuantity; }
         set
@@ -33,8 +33,6 @@ public class Product
         get { return _productQuantity > 0; }
     }
 
-    public Product()
-    {}
     public Product(int id, string name, int price, int quantity)
     {
         Id = id;

@@ -61,9 +61,10 @@ public class Admin
 
             if (!machine.IdSet.Contains(id))
             {
-                Product product_exemp = new() { Id = id, Name = name, Price = price, Quantity = quantity };
+                Product product_exemp = new(id, name, price, quantity);
                 machine.AvailableProducts.Add(product_exemp);
                 machine.IdSet.Add(id);
+                Console.WriteLine($"\nyou added a new product: {product_exemp.AdminInfoOutput()}");
             }
             else // since id in the set
             {

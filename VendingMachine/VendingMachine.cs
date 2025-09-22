@@ -334,7 +334,6 @@ public class VendingMachine
 
     public void MachineStart()
     {
-        Console.WriteLine("\nhello! you've started a Vending Machine");
         if (AvailableProducts.Count == 0)
         {
             Console.WriteLine("\nthere are no products added yet. you need to login as admin to add new products.");
