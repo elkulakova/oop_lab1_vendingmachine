@@ -1,4 +1,4 @@
-
+namespace VendingMachineApp;
 public class Admin
 {
     public Admin(string password, VendingMachine machine)
@@ -14,217 +14,9 @@ public class Admin
         }
     }
 
-    public static void AddNewPositions(VendingMachine machine)
-    {
-        Console.WriteLine("\nhow many product types do you want to add? enter an integer value.");
-        string? products_temp = Console.ReadLine();
-
-        int prod_num;
-
-        while (!int.TryParse(products_temp, out prod_num) || prod_num <= 0)
-        {
-            Console.WriteLine("\nyou must enter a positive integer value");
-            products_temp = Console.ReadLine();
-        }
-
-        for (int i = 0; i < prod_num; i++)
-        {
-            Console.WriteLine("\nenter product id (int), product name (string), product price (int) and product quantity (int), separate with comma.\nformat example: 1, water 'saint spring', 50, 100.");
-            string? input_prod = Console.ReadLine();
-
-            if (string.IsNullOrEmpty(input_prod) || string.IsNullOrWhiteSpace(input_prod))
-            {
-                Console.WriteLine("\nenter product data in a correct way");
-                i--;
-                continue;
-            }
-
-            var parts = input_prod.Split(",");
-
-            if (parts.Length != 4)
-            {
-                Console.WriteLine("\nenter product data in a correct way");
-                i--;
-                continue;
-            }
-
-            string name = parts[1].Trim();
-
-            if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[2].Trim(), out int price) || price < 0 || !int.TryParse(parts[3].Trim(), out int quantity) || quantity <= 0)
-            {
-                Console.WriteLine("\nenter product data in a correct way");
-                i--;
-                continue;
-            }
-
-            if (!machine.IdSet.Contains(id))
-            {
-                Product product_exemp = new(id, name, price, quantity);
-                machine.AvailableProducts.Add(product_exemp);
-                machine.IdSet.Add(id);
-                Console.WriteLine($"\nyou added a new product: {product_exemp.AdminInfoOutput()}");
-            }
-            else // since id in the set
-            {
-                Product existingProduct = machine.AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
-                Console.WriteLine($"\nid {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
-                i--;
-                continue;
-            }
-        }
-    }
-
-    public static void RefillProducts(VendingMachine machine)
-    {
-        Console.WriteLine("\nhow many types of products do you want to refill? enter an integer value.");
-        string? str_types = Console.ReadLine();
-
-        int types_num;
-
-        while (!int.TryParse(str_types, out types_num) || types_num <= 0)
-        {
-            Console.WriteLine("\ntypes number must be a positive integer. try again");
-            str_types = Console.ReadLine();
-        }
-
-        for (int i = 0; i < types_num; i++)
-        {
-            Console.WriteLine("\nenter prodict id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount} (without curly braces, just 2 intengers separsted by a comma)");
-            string? prod_data = Console.ReadLine();
-
-            bool success = false;
-
-            while (!success)
-            {
-                if (string.IsNullOrEmpty(prod_data) || string.IsNullOrWhiteSpace(prod_data))
-                {
-                    Console.WriteLine("\nenter product data in a correct way");
-                    i--;
-                    continue;
-                }
-
-                var parts = prod_data.Split(",");
-                if (parts.Length != 2)
-                {
-                    Console.WriteLine("\nwrong format. use: ProductId, ProductAmount. try again:");
-                    i--;
-                    continue;
-                }
-
-                if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int quantity) || quantity <= 0)
-                {
-                    Console.WriteLine("\nwrong format. id must exist and amount must be positive. try again");
-                    i--;
-                    continue;
-                }
-
-                Product? foundProduct = machine.AvailableProducts.FirstOrDefault(product => product.Id == id);
-
-                if (foundProduct is null)
-                {
-                    Console.WriteLine($"\nthere is no product with id {id}. try entering the data again");
-                    i--;
-                    continue;
-                }
-
-                foundProduct.Quantity += quantity;
-                Console.WriteLine($"\nyou refilled {foundProduct.Name} (id {foundProduct.Id}) by {quantity} pieces. now the amount is {foundProduct.Quantity}");
-                success = true;
-            }
-        }
-    }
-
-    public static void RefillAddProducts(VendingMachine machine) // ststic is suggested by VSCode
-    {
-        if (machine.AvailableProducts.Count == 0)
-        {
-            Console.WriteLine("\nthere are no products added yet.");
-            AddNewPositions(machine);
-        }
-        else
-        {
-            Console.WriteLine("\nhere are the list of available products:\n");
-            foreach (Product product in machine.AvailableProducts.Cast<Product>())
-            {
-                string? info = product.AdminInfoOutput();
-                if (info is not null)
-                    Console.WriteLine(info);
-            }
-            Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product\n3. exit to main menu");
-
-            string? option;
-            do
-            {
-                option = Console.ReadLine();
-                if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
-                {
-                    Console.WriteLine("\nchoose the task to do, input cannot be empty.");
-                }
-            } while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option));
-
-            switch (option.ToLower().Trim())
-            {
-                case "1. refill existing products":
-                case "refill existing products":
-                case "refill products":
-                case "refill":
-                case "1":
-                    Console.WriteLine("\nrefilling products....");
-                    RefillProducts(machine);
-                    ChooseTask(machine);
-                    return;
-
-                case "2. add new product":
-                case "add new product":
-                case "add product":
-                case "add new":
-                case "add":
-                case "2":
-                    Console.WriteLine("\nadding new products....");
-                    AddNewPositions(machine);
-                    ChooseTask(machine);
-                    return;
-
-                case "3. exit to main menu":
-                case "exit to main menu":
-                case "exit":
-                case "3":
-                    Console.WriteLine("\nexiting to main menu....");
-                    ChooseTask(machine);
-                    return;
-
-                default:
-                    Console.WriteLine("\ninvalid option. please choose 1 or 2.");
-                    RefillAddProducts(machine);
-                    return;
-            }
-        }
-    }
-
-    public static void CollectMoney(VendingMachine machine)
-    {
-        var cashDesk = machine.CashDesk;
-        int summa = 0;
-
-        foreach (var entry in cashDesk)
-        {
-            summa += entry.Key * entry.Value;
-            Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
-        }
-
-        Console.WriteLine($"\n{summa} RUB collected");
-
-        foreach (int face in Coin.Faces)
-        {
-            cashDesk[face] = 0;
-        }
-
-        Console.WriteLine("\ncash desk is empty now");
-    }
-
     public static void ChooseTask(VendingMachine machine)
     {
-        Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. change role;\n4. exit program.");
+        Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. change role;\n4. fill the cash desk;\n5. exit program.");
         string? option = Console.ReadLine();
 
         while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
@@ -239,8 +31,7 @@ public class Admin
             case "refill products":
             case "refill":
             case "1":
-                Console.WriteLine("\nrefilling products....");
-                RefillAddProducts(machine);
+                machine.RefillAddProducts();
                 ChooseTask(machine);
                 return;
 
@@ -249,8 +40,14 @@ public class Admin
             case "collect money":
             case "collect":
             case "2":
+                while (machine.CashDesk.Values.All(v => v == 0))
+                {
+                    Console.WriteLine("\ncash desk is empty, there is no money to collect");
+                    ChooseTask(machine);
+                    return;
+                }
                 Console.WriteLine("\ncollecting money....");
-                CollectMoney(machine);
+                machine.CollectMoney();
                 ChooseTask(machine);
                 return;
 
@@ -258,19 +55,49 @@ public class Admin
             case "change role":
             case "change":
             case "3":
+                while (machine.AvailableProducts.Count == 0 || machine.CashDesk.Values.All(v => v == 0))
+                {
+                    if (machine.AvailableProducts.Count == 0)
+                    {
+                        Console.WriteLine("\nthere are no products added yet.\nyou need to add products before changing the role.");
+                        machine.AddNewPositions();
+                    }
+                    else if (machine.CashDesk.Values.All(v => v == 0))
+                    {
+                        Console.WriteLine("\nthe cash desk is empty, there is no money to give change from.\nyou need to fill the cash desk before changing the role.");
+                        machine.FillCashDesk();
+                    }
+                    else
+                    {
+                        Console.WriteLine("\nno products & money yet. cannot change the role.");
+                        machine.AddNewPositions();
+                        machine.FillCashDesk();
+                    }
+                }
                 Console.WriteLine("\nchanging role to user....");
                 User user = new();
+                Console.WriteLine("\nhello, user! ready to choose?");
                 machine.UserScenario(user);
                 return;
 
-            case "4. exit program":
+            case "4. fill the cash desk":
+            case "fill the cash desk":
+            case "fill cash desk":
+            case "fill":
+            case "4":
+                Console.WriteLine("\nfilling the cash desk....");
+                machine.FillCashDesk();
+                ChooseTask(machine);
+                return;
+
+            case "5. exit program":
             case "exit program":
             case "exit":
-            case "4":
+            case "5":
                 Console.WriteLine("\nexiting program....");
                 VendingMachine.ShutDown();
                 return;
-                
+
             default:
                 Console.WriteLine("\ninvalid option. please choose 1, 2, 3 or 4.");
                 ChooseTask(machine);

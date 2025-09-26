@@ -1,3 +1,4 @@
+namespace VendingMachineApp;
 public class VendingMachine
 {
     public List<Product> AvailableProducts = []; // filled by Admin
@@ -10,111 +11,95 @@ public class VendingMachine
     {
     }
 
-    public string Payment(int id, int price, int amount, Dictionary<int, int> user_purse)
+    public string Payment(int id, int price, int amount)
     {
         int purchase_sum = price * amount;
 
         int user_summa = 0;
+        Dictionary<int, int> purchase_dict = [];
 
-        bool cancelled = false;
+        Console.WriteLine($"\nthe total sum of your purchase is {purchase_sum} RUB.\nplease, pay the amount using coins/banknotes of the following FACES: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB.\n\nif you want to cancel the purchase, enter 'CANCEL'");
+        Console.WriteLine("\n\nyou can pay the amount in several steps, using coins/banknotes of different faces\nwhen finish, enter 'PAY'\n");
+        Console.WriteLine("\nlet's start payment. enter the number of pieces of each face you want to use\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)");
 
-        foreach (var entry in user_purse)
+        while (true)
         {
-            user_summa += entry.Key * entry.Value;
+            Console.WriteLine("\nenter the amount of the face you want to use (positive integer)\nif you want to cancel the purchase, enter 'CANCEL'\nif you have finished payment, enter 'PAY'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
+            Console.WriteLine($"\n\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+            string? num = Console.ReadLine();
+
+            if (string.IsNullOrEmpty(num) || string.IsNullOrWhiteSpace(num))
+            {
+                Console.WriteLine("\ninvalid value. try again");
+                continue;
+            }
+
+            else if (num.ToLower().Trim() == "pay")
+            {
+                if (user_summa < purchase_sum)
+                {
+                    Console.WriteLine($"\nthe amount you have paid – {user_summa} RUB – is less than the purchase sum {purchase_sum} RUB. please, pay the remaining amount");
+                    continue;
+                }
+                else
+                {
+                    foreach (var entry in purchase_dict)
+                    {
+                        CashDesk[entry.Key] += entry.Value;
+                    }
+                    break;
+                }
+            }
+            else if (num.ToLower().Trim() == "cancel" || num.ToLower().Trim() == "c" || num.ToLower().Trim() == "exit" || num.ToLower().Trim() == "quit" || num.ToLower().Trim() == "q" || num.ToLower().Trim() == "e")
+            {
+                RefundMoney(purchase_dict);
+                return "cancelled";
+            }
+            else
+            {
+                var parts = num.Split(",");
+                if (parts.Length != 2)
+                {
+                    Console.WriteLine("\nwrong format. try again. FORMAT EXAMPLE: 10, 5.");
+                    continue;
+                }
+                if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
+                {
+                    Console.WriteLine($"\nwrong format. try again. FORMAT EXAMPLE: 10, 5.\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+                    continue;
+                }
+                user_summa += int.Parse(parts[0]) * int.Parse(parts[1]);
+                Console.WriteLine($"\nthe REMAINING amount to pay is {purchase_sum - user_summa} RUB\nDEPOSITED amount is {user_summa} RUB");
+                purchase_dict[face] = purchase_dict.GetValueOrDefault(face, 0) + pieces;
+            }
         }
-
-        if (user_summa >= purchase_sum)
+        if (user_summa > purchase_sum)
         {
-            Console.WriteLine($"\nyou need to pay {purchase_sum} RUB.\nnow you need to enter amount of money you want to pay");
-            Console.WriteLine("you can cancel your purchase any moment. just enter 'cancel' in the command line.");
-
-            Console.WriteLine("\nhere is the content of your purse:\n");
-            foreach (var entry in user_purse)
+            int user_change = user_summa - purchase_sum;
+            string result = GiveCharge(user_change, purchase_dict);
+            if (result == "change")
             {
-                Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+                Product innerProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
+                innerProduct.Quantity -= amount;
+                Console.WriteLine($"\nyou have successfully bought {amount} pieces of {innerProduct.Name} (id {innerProduct.Id}). enjoy your product(s)!");
+                return "success";
             }
-
-            int topay = 0;
-            Dictionary<int, int> purchase_dict = [];
-            bool paid = false;
-
-            while (!paid && !cancelled)
+            else
             {
-                foreach (var entry in user_purse.Where(e => e.Value > 0).ToList())
-                {
-                    if (topay >= purchase_sum)
-                    {
-                        paid = true;
-                        break;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"\nenter the amount of {entry.Key} RUB-coins/banknotes you want to use ({entry.Value} available; positive integer)");
-                        string? pieces = Console.ReadLine();
-
-                        int num;
-                        while (!int.TryParse(pieces, out num) || num < 0 || num > entry.Value)
-                        {
-                            if (pieces == "cancel")
-                            {
-                                cancelled = true;
-                                return "cancelled";
-                            }
-
-                            Console.WriteLine("\ninvalid value. try again");
-                            pieces = Console.ReadLine();
-
-                            while (string.IsNullOrEmpty(pieces) || string.IsNullOrWhiteSpace(pieces))
-                            {
-                                Console.WriteLine("\ninvalid value. try again");
-                                pieces = Console.ReadLine();
-                            }
-                        }
-
-                        if (num > 0)
-                        {
-                            topay += entry.Key * num;
-                            user_purse[entry.Key] -= num;
-
-                            CashDesk[entry.Key] += num;
-                            purchase_dict.Add(entry.Key, num);
-                            Console.WriteLine($"\n{topay} deposited");
-                        }
-                    }
-                }
+                return "refund";
             }
-
-            if (topay > purchase_sum)
-            {
-                int user_change = topay - purchase_sum;
-                string result = GiveCharge(user_change, user_purse, purchase_dict);
-                if (result == "change")
-                {
-                    Product innerProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
-                    innerProduct.Quantity -= amount;
-                    Console.WriteLine($"\nyou have successfully bought {amount} pieces of {innerProduct.Name} (id {innerProduct.Id}). enjoy your product(s)!");
-                    return "success";
-                }
-                if (result == "refund")
-                {
-                    return "refund";
-                }
-            }
-
+        }
+        else
+        {
             Console.WriteLine("\nthank you for exact payment");
             Product foundProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
             foundProduct.Quantity -= amount;
             Console.WriteLine($"\nyou have successfully bought {amount} piece(s) of {foundProduct.Name} (id {foundProduct.Id}). enjoy your product(s)!");
             return "success";
         }
-        else
-        {
-            Console.WriteLine("sorry, you don't have enough money. choose another product");
-            return "no_money";
-        }
     }
 
-    public string GiveCharge(int change, Dictionary<int, int> user_purse, Dictionary<int, int> money_dict)
+    public string GiveCharge(int change, Dictionary<int, int> money_dict)
     {
         Dictionary<int, int> change_dict = [];
         int remaining = change;
@@ -143,98 +128,104 @@ public class VendingMachine
         }
         if (remaining > 0)
         {
-            RefundMoney(money_dict, user_purse);
-            Console.WriteLine($"\nsorry, there is not enough change in the machine/there is enough change but there is no possibility to give you precisely {change} RUB. your money has been refunded");
+            RefundMoney(money_dict);
+            Console.WriteLine($"\n\nsorry, there is NOT ENOUGH CHANGE in the machine/there is enough change but there is NO POSSIBILITY to give you precisely {change} RUB. your money has been refunded");
             return "refund";
         }
         else
         {
+            Console.WriteLine($"\n\nhere is YOUR CHANGE of {change} RUB, given as follows:");
             foreach (var entry in change_dict)
             {
-                user_purse[entry.Key] += entry.Value;
+                Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
                 CashDesk[entry.Key] -= entry.Value;
             }
-            Console.WriteLine($"your change {change} RUB has been given");
+            Console.WriteLine($"\nyour change {change} RUB has been given");
             return "change";
         }
     }
 
-    public static void RefundMoney(Dictionary<int, int> user_money, Dictionary<int, int> user_purse)
+    public static void RefundMoney(Dictionary<int, int> user_money)
     {
+        Console.WriteLine("\n\nhere is the money you have deposited:");
         foreach (var entry in user_money)
         {
-            user_purse[entry.Key] += entry.Value;
+            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
         }
+        Console.WriteLine("\nyour money HAS BEEN REFUNDED");
     }
 
-    public void Purchase(Dictionary<int, int> user_purse)
+    public void Purchase()
     {
-        Console.WriteLine("\nhow many items of different types do you want to buy? enter an integer value");
-        string? items_num_str = Console.ReadLine();
-
-        int items_num;
-
-        while (!int.TryParse(items_num_str, out items_num) || items_num <= 0)
+        while (true)
         {
-            Console.WriteLine("number of different items must be a positive integer. try again.");
-            items_num_str = Console.ReadLine();
-        }
-        for (int i = 0; i < items_num; i++)
-        {
-            Console.WriteLine("enter product id and the amount you want to buy. format: {ProductId}, {ProductAmount} (int, int; i.e. 123, 5)");
+            if (AvailableProducts.All(prod => !prod.InStock))
+            {
+                Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
+                return;
+            }
+
+            Console.WriteLine("\nhere is the list of AVAILABLE products:\n");
+
+            foreach (Product prod in AvailableProducts)
+            {
+                if (prod.ConsumerInfoOutput() is not null)
+                {
+                    Console.WriteLine($"{prod.ConsumerInfoOutput()}");
+                }
+            }
+
+            Console.WriteLine($"\navailable product ids: {string.Join(", ", IdSet)}");
+            Console.WriteLine("\nenter product id and the amount you want to buy.\nFORMAT EXAMPLE: 10, 3 (id 10, pieces 3)\nif you want to exit purchasing, enter 'CANCEL'");
             string? desire = Console.ReadLine();
 
             if (string.IsNullOrEmpty(desire) || string.IsNullOrWhiteSpace(desire))
             {
-                Console.WriteLine("wrong format. try again. format example: 123, 5.");
-                i--;
-                continue;
-            }
-            var parts = desire.Split(",");
-            if (parts.Length != 2)
-            {
-                Console.WriteLine("wrong format. try again. format example: 123, 5.");
-                i--;
-                continue;
+                Console.WriteLine("wrong format. try again. FORMAT EXAMPLE: 123, 5.");
+                desire = Console.ReadLine();
             }
 
-            if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int amount) || amount <= 0)
+            else if (desire.ToLower().Trim() == "exit" || desire.ToLower().Trim() == "quit" || desire.ToLower().Trim() == "q" || desire.ToLower().Trim() == "e" || desire.ToLower().Trim() == "cancel" || desire.ToLower().Trim() == "c")
             {
-                Console.WriteLine("wrong format. try again. format example: 123, 5.");
-                i--;
-                continue;
+                Console.WriteLine("exiting purchasing....");
+                return;
             }
-
-            Product? foundProduct = AvailableProducts.FirstOrDefault(prod => prod.Id == id && prod.Quantity >= amount);
-
-            if (foundProduct is null)
+            else
             {
-                Console.WriteLine($"wrong id. choose one of the list {IdSet}");
-                i--;
-                continue;
-            }
+                var parts = desire.Split(",");
+                if (parts.Length != 2)
+                {
+                    Console.WriteLine("wrong format. try again. FORMAT EXAMPLE: 123, 5.");
+                    continue;
+                }
 
-            int prod_price = foundProduct.Price;
-            Console.WriteLine($"your {i + 1}/{items_num} product: {foundProduct.Name} (id {foundProduct.Id}), price {foundProduct.Price} RUB, amount - {amount} piece(s).");
-            var res = Payment(id, prod_price, amount, user_purse);
-            if (res == "refund" || res == "no_money" || res == "cancelled")
-            {
-                i--;
-                continue;
+                if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int amount) || amount <= 0)
+                {
+                    Console.WriteLine("wrong format. try again. FORMAT EXAMPLE: 123, 5.");
+                    continue;
+                }
+
+                Product? foundProduct = AvailableProducts.FirstOrDefault(prod => prod.Id == id && prod.Quantity >= amount);
+
+                if (foundProduct is null)
+                {
+                    Console.WriteLine($"wrong id. choose one of the list {IdSet}");
+                    continue;
+                }
+
+                int prod_price = foundProduct.Price;
+                Console.WriteLine($"your PURCHASE: {foundProduct.Name} (id {foundProduct.Id}), price {foundProduct.Price} RUB, amount - {amount} piece(s).");
+                var res = Payment(id, prod_price, amount);
+                if (res == "refund" || res == "no_money" || res == "cancelled")
+                {
+                    continue;
+                }
             }
         }
     }
 
     public void UserScenario(User consumer)
     {
-        Console.WriteLine("\nhello, user! ready to choose?");
-        // show purse
-        Console.WriteLine("\nhere is the content of your purse:");
-        foreach (var entry in consumer.UserPurse)
-        {
-            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
-        }
-
         Console.WriteLine("\nhere is the list of available products:\n");
 
         foreach (Product prod in AvailableProducts)
@@ -259,7 +250,7 @@ public class VendingMachine
             case "yes":
             case "y":
             case "1":
-                Purchase(consumer.UserPurse);
+                Purchase();
                 UserScenario(consumer);
                 return;
 
@@ -296,7 +287,219 @@ public class VendingMachine
                         UserScenario(consumer);
                         return;
                 }
+            default:
+                Console.WriteLine("wrong input. try again");
+                UserScenario(consumer);
+                return;
         }
+    }
+
+    public void AddNewPositions()
+    {
+        Console.WriteLine("\nhow many product types do you want to add? enter an integer value.");
+        string? products_temp = Console.ReadLine();
+
+        int prod_num;
+
+        while (!int.TryParse(products_temp, out prod_num) || prod_num <= 0)
+        {
+            Console.WriteLine("\nyou must enter a positive integer value");
+            products_temp = Console.ReadLine();
+        }
+
+        for (int i = 0; i < prod_num; i++)
+        {
+            Console.WriteLine("\nenter product id (int), product name (string), product price (int) and product quantity (int), separate with comma.\nformat example: 1, water 'saint spring', 50, 100.");
+            string? input_prod = Console.ReadLine();
+
+            if (string.IsNullOrEmpty(input_prod) || string.IsNullOrWhiteSpace(input_prod))
+            {
+                Console.WriteLine("\nenter product data in a correct way");
+                i--;
+                continue;
+            }
+
+            var parts = input_prod.Split(",");
+
+            if (parts.Length != 4)
+            {
+                Console.WriteLine("\nenter product data in a correct way");
+                i--;
+                continue;
+            }
+
+            string name = parts[1].Trim();
+
+            if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[2].Trim(), out int price) || price < 0 || !int.TryParse(parts[3].Trim(), out int quantity) || quantity <= 0)
+            {
+                Console.WriteLine("\nenter product data in a correct way");
+                i--;
+                continue;
+            }
+
+            if (!IdSet.Contains(id))
+            {
+                Product product_exemp = new(id, name, price, quantity);
+                AvailableProducts.Add(product_exemp);
+                IdSet.Add(id);
+                Console.WriteLine($"\nyou added a new product: {product_exemp.AdminInfoOutput()}");
+            }
+            else // since id in the set
+            {
+                Product existingProduct = AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
+                Console.WriteLine($"\nid {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
+                i--;
+                continue;
+            }
+        }
+    }
+
+    public void RefillProducts()
+    {
+        Console.WriteLine("\nhow many types of products do you want to refill? enter an integer value.");
+        string? str_types = Console.ReadLine();
+
+        int types_num;
+
+        while (!int.TryParse(str_types, out types_num) || types_num <= 0)
+        {
+            Console.WriteLine("\ntypes number must be a positive integer. try again");
+            str_types = Console.ReadLine();
+        }
+
+        for (int i = 0; i < types_num; i++)
+        {
+            Console.WriteLine("\nenter prodict id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount} (without curly braces, just 2 intengers separsted by a comma)");
+            string? prod_data = Console.ReadLine();
+
+            bool success = false;
+
+            while (!success)
+            {
+                if (string.IsNullOrEmpty(prod_data) || string.IsNullOrWhiteSpace(prod_data))
+                {
+                    Console.WriteLine("\nenter product data in a correct way");
+                    i--;
+                    continue;
+                }
+
+                var parts = prod_data.Split(",");
+                if (parts.Length != 2)
+                {
+                    Console.WriteLine("\nwrong format. use: ProductId, ProductAmount. try again:");
+                    i--;
+                    continue;
+                }
+
+                if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int quantity) || quantity <= 0)
+                {
+                    Console.WriteLine("\nwrong format. id must exist and amount must be positive. try again");
+                    i--;
+                    continue;
+                }
+
+                Product? foundProduct = AvailableProducts.FirstOrDefault(product => product.Id == id);
+
+                if (foundProduct is null)
+                {
+                    Console.WriteLine($"\nthere is no product with id {id}. try entering the data again");
+                    i--;
+                    continue;
+                }
+
+                foundProduct.Quantity += quantity;
+                Console.WriteLine($"\nyou refilled {foundProduct.Name} (id {foundProduct.Id}) by {quantity} pieces. now the amount is {foundProduct.Quantity}");
+                success = true;
+            }
+        }
+    }
+
+    public void RefillAddProducts() // ststic is suggested by VSCode
+    {
+        if (AvailableProducts.Count == 0)
+        {
+            Console.WriteLine("\nthere are no products added yet.");
+            AddNewPositions();
+        }
+        else
+        {
+            Console.WriteLine("\nhere are the list of available products:\n");
+            foreach (Product product in AvailableProducts.Cast<Product>())
+            {
+                string? info = product.AdminInfoOutput();
+                if (info is not null)
+                    Console.WriteLine(info);
+            }
+            Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product\n3. exit to main menu");
+
+            string? option;
+            do
+            {
+                option = Console.ReadLine();
+                if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
+                {
+                    Console.WriteLine("\nchoose the task to do, input cannot be empty.");
+                }
+            } while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option));
+
+            switch (option.ToLower().Trim())
+            {
+                case "1. refill existing products":
+                case "refill existing products":
+                case "refill products":
+                case "refill":
+                case "1":
+                    Console.WriteLine("\nrefilling products....");
+                    RefillProducts();
+                    Admin.ChooseTask(this);
+                    return;
+
+                case "2. add new product":
+                case "add new product":
+                case "add product":
+                case "add new":
+                case "add":
+                case "2":
+                    Console.WriteLine("\nadding new products....");
+                    AddNewPositions();
+                    Admin.ChooseTask(this);
+                    return;
+
+                case "3. exit to main menu":
+                case "exit to main menu":
+                case "exit":
+                case "3":
+                    Console.WriteLine("\nexiting to main menu....");
+                    Admin.ChooseTask(this);
+                    return;
+
+                default:
+                    Console.WriteLine("\ninvalid option. please choose 1 or 2.");
+                    RefillAddProducts();
+                    return;
+            }
+        }
+    }
+
+    public void CollectMoney()
+    {
+        var cashDesk = CashDesk;
+        int summa = 0;
+
+        foreach (var entry in cashDesk)
+        {
+            summa += entry.Key * entry.Value;
+            Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
+        }
+
+        Console.WriteLine($"\n{summa} RUB collected");
+
+        foreach (int face in Coin.Faces)
+        {
+            cashDesk[face] = 0;
+        }
+
+        Console.WriteLine("\ncash desk is empty now");
     }
 
     public void AdminScenario()
@@ -364,6 +567,45 @@ public class VendingMachine
                     MachineStart();
                     return;
             }
+        }
+    }
+
+    public void FillCashDesk()
+    {
+
+        while(true)
+        {
+            Console.WriteLine("\nenter the amount of the face you want to add (positive integer)\nif you filled the cash desk, enter 'DONE'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
+            Console.WriteLine($"\n\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+            string? val = Console.ReadLine();
+
+            if (string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val))
+            {
+                Console.WriteLine("\ninvalid value. try again");
+                continue;
+            }
+
+            else if (val.ToLower().Trim() == "done" || val.ToLower().Trim() == "finish" || val.ToLower().Trim() == "f" || val.ToLower().Trim() == "d") break;
+
+            var parts = val.Split(",");
+            if (parts.Length != 2)
+            {
+                Console.WriteLine("\nwrong format. try again. FORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
+                continue;
+            }
+
+            if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
+            {
+                Console.WriteLine($"\nwrong format. try again. FORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+                continue;
+            }
+            CashDesk[face] += pieces;
+        }
+
+        Console.WriteLine("\n\ncash desk has been successfully filled. current content:");
+        foreach (var entry in CashDesk)
+        {
+            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
         }
     }
 }

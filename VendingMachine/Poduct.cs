@@ -1,3 +1,4 @@
+namespace VendingMachineApp;
 public class Product
 {
     private int _productPrice;
