@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection.PortableExecutable;
 
 public class Admin
 {
@@ -70,7 +68,7 @@ public class Admin
             {
                 Product existingProduct = machine.AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
                 Console.WriteLine($"\nid {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
-                i--; // do we need it?? think no, since admin wanted to add this product also and it is included in the total amount of products to add
+                i--;
                 continue;
             }
         }
@@ -171,7 +169,7 @@ public class Admin
                 case "refill products":
                 case "refill":
                 case "1":
-                    Console.WriteLine("\nrefilling products...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
+                    Console.WriteLine("\nrefilling products....");
                     RefillProducts(machine);
                     ChooseTask(machine);
                     return;
@@ -182,7 +180,7 @@ public class Admin
                 case "add new":
                 case "add":
                 case "2":
-                    Console.WriteLine("\nadding new products...."); // gap closure
+                    Console.WriteLine("\nadding new products....");
                     AddNewPositions(machine);
                     ChooseTask(machine);
                     return;
@@ -191,7 +189,7 @@ public class Admin
                 case "exit to main menu":
                 case "exit":
                 case "3":
-                    Console.WriteLine("\nexiting to main menu...."); // gap closure
+                    Console.WriteLine("\nexiting to main menu....");
                     ChooseTask(machine);
                     return;
 
@@ -241,7 +239,7 @@ public class Admin
             case "refill products":
             case "refill":
             case "1":
-                Console.WriteLine("\nrefilling products...."); // gap closure, here i will run an appropriate function. надо здесь сделать доступ к списку продуктов в автомате и их количеству тоже
+                Console.WriteLine("\nrefilling products....");
                 RefillAddProducts(machine);
                 ChooseTask(machine);
                 return;
@@ -251,7 +249,7 @@ public class Admin
             case "collect money":
             case "collect":
             case "2":
-                Console.WriteLine("\ncollecting money...."); // gap closure
+                Console.WriteLine("\ncollecting money....");
                 CollectMoney(machine);
                 ChooseTask(machine);
                 return;
@@ -260,7 +258,7 @@ public class Admin
             case "change role":
             case "change":
             case "3":
-                Console.WriteLine("\nchanging role to user...."); // gap closure
+                Console.WriteLine("\nchanging role to user....");
                 User user = new();
                 machine.UserScenario(user);
                 return;
@@ -269,8 +267,13 @@ public class Admin
             case "exit program":
             case "exit":
             case "4":
-                Console.WriteLine("\nexiting program...."); // gap closure
+                Console.WriteLine("\nexiting program....");
                 VendingMachine.ShutDown();
+                return;
+                
+            default:
+                Console.WriteLine("\ninvalid option. please choose 1, 2, 3 or 4.");
+                ChooseTask(machine);
                 return;
         }
     }

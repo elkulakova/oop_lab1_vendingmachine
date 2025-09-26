@@ -1,7 +1,3 @@
-using System.Diagnostics.Metrics;
-using System.Globalization;
-using System.Numerics;
-
 public class VendingMachine
 {
     public List<Product> AvailableProducts = []; // filled by Admin
@@ -32,7 +28,6 @@ public class VendingMachine
             Console.WriteLine($"\nyou need to pay {purchase_sum} RUB.\nnow you need to enter amount of money you want to pay");
             Console.WriteLine("you can cancel your purchase any moment. just enter 'cancel' in the command line.");
 
-            // show user purse again
             Console.WriteLine("\nhere is the content of your purse:\n");
             foreach (var entry in user_purse)
             {
@@ -314,7 +309,6 @@ public class VendingMachine
             Console.WriteLine("admin password cannot be empty.");
             return;
         }
-            //throw new ArgumentException("admin password cannot be empty");
         try
         {
             var admin = new Admin(password, this);
