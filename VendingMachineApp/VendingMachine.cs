@@ -3,7 +3,9 @@ public class VendingMachine
 {
     public List<Product> AvailableProducts = []; // filled by Admin
 
-    public HashSet<int> IdSet = []; // filled by Admin
+    public HashSet<int> IdSet = []; // filled automatically
+
+    public HashSet<string> NamingSet = []; // filled automatically
 
     public Dictionary<int, int> CashDesk = Coin.Faces.ToDictionary(k => k, k => 0); // filled automatically
 
@@ -236,6 +238,41 @@ public class VendingMachine
             }
         }
 
+        if (AvailableProducts.All(prod => !prod.InStock))
+        {
+            Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
+            Console.WriteLine("\nwant to change role? (yes/no&exit)");
+            string? ans = Console.ReadLine();
+
+            while (string.IsNullOrEmpty(ans) || string.IsNullOrWhiteSpace(ans))
+            {
+                Console.WriteLine("entered answer cannot be empty. try again");
+                ans = Console.ReadLine();
+            }
+            switch (ans.ToLower().Trim())
+            {
+                case "yes":
+                case "y":
+                case "1":
+                    Console.WriteLine("\nchanging role to admin...."); // gap closure
+                    AdminScenario();
+                    return;
+
+                case "no&exit":
+                case "no":
+                case "n":
+                case "2":
+                    Console.WriteLine("\ngoodbye!");
+                    ShutDown();
+                    return;
+
+                default:
+                    Console.WriteLine("wrong input. try again");
+                    UserScenario(consumer);
+                    return;
+            }
+        }
+        
         Console.WriteLine("\nwant to buy something? (yes/no)");
         string? answer = Console.ReadLine();
 
@@ -294,6 +331,15 @@ public class VendingMachine
         }
     }
 
+    public void ViewCashDesk()
+    {
+        Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
+        foreach (var entry in CashDesk)
+        {
+            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+        }
+    }
+
     public void AddNewPositions()
     {
         Console.WriteLine("\nhow many product types do you want to add? enter an integer value.");
@@ -337,14 +383,27 @@ public class VendingMachine
                 continue;
             }
 
-            if (!IdSet.Contains(id))
+            if (!IdSet.Contains(id) && !NamingSet.Contains(name)) // if id and name are new
             {
                 Product product_exemp = new(id, name, price, quantity);
                 AvailableProducts.Add(product_exemp);
                 IdSet.Add(id);
+                NamingSet.Add(name);
                 Console.WriteLine($"\nyou added a new product: {product_exemp.AdminInfoOutput()}");
             }
-            else // since id in the set
+            else if (!IdSet.Contains(id) && NamingSet.Contains(name)) // if id is new but name exists
+            {
+                Console.WriteLine($"\nproduct with name '{name}' already exists. change the parameters and try again.");
+                i--;
+                continue;
+            }
+            else if (IdSet.Contains(id) && !NamingSet.Contains(name)) // if id exists but name is new
+            {
+                Console.WriteLine($"\nproduct with id {id} already exists. change the parameters and try again.");
+                i--;
+                continue;
+            }
+            else if (IdSet.Contains(id) && NamingSet.Contains(name)) // if both id and name exist
             {
                 Product existingProduct = AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
                 Console.WriteLine($"\nid {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
@@ -532,7 +591,7 @@ public class VendingMachine
 
         if (string.IsNullOrEmpty(password) || string.IsNullOrWhiteSpace(password))
         {
-            Console.WriteLine("admin password cannot be empty.");
+            Console.WriteLine("\nadmin password cannot be empty.");
             return;
         }
         try

@@ -16,7 +16,7 @@ public class Admin
 
     public static void ChooseTask(VendingMachine machine)
     {
-        Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. change role;\n4. fill the cash desk;\n5. exit program.");
+        Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. view the content of the cash desk;\n4. fill the cash desk;\n5. change the role;\n6. exit program.");
         string? option = Console.ReadLine();
 
         while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
@@ -51,15 +51,13 @@ public class Admin
                 ChooseTask(machine);
                 return;
 
-            case "3. change role":
-            case "change role":
-            case "change":
+            case "3. view the content of the cash desk":
+            case "view the content of the cash desk":
+            case "view cash desk":
+            case "view":
             case "3":
-                machine.ChangeRoleCheck();
-                Console.WriteLine("\nchanging role to user....");
-                User user = new();
-                Console.WriteLine("\nhello, user! ready to choose?");
-                machine.UserScenario(user);
+                machine.ViewCashDesk();
+                ChooseTask(machine);
                 return;
 
             case "4. fill the cash desk":
@@ -72,10 +70,21 @@ public class Admin
                 ChooseTask(machine);
                 return;
 
-            case "5. exit program":
+            case "5. change role":
+            case "change role":
+            case "change":
+            case "5":
+                machine.ChangeRoleCheck();
+                Console.WriteLine("\nchanging role to user....");
+                User user = new();
+                Console.WriteLine("\nhello, user! ready to choose?");
+                machine.UserScenario(user);
+                return;
+
+            case "6. exit program":
             case "exit program":
             case "exit":
-            case "5":
+            case "6":
                 Console.WriteLine("\nexiting program....");
                 VendingMachine.ShutDown();
                 return;
