@@ -502,6 +502,29 @@ public class VendingMachine
         Console.WriteLine("\ncash desk is empty now");
     }
 
+    public void ChangeRoleCheck()
+    {
+        if (AvailableProducts.Count == 0 || CashDesk.Values.All(v => v == 0))
+        {
+            if (AvailableProducts.Count == 0 && !CashDesk.Values.All(v => v == 0))
+            {
+                Console.WriteLine("\nthere are no products added yet.\nyou need to add products before changing the role.");
+                AddNewPositions();
+            }
+            else if (AvailableProducts.Count != 0 && CashDesk.Values.All(v => v == 0))
+            {
+                Console.WriteLine("\nthe cash desk is empty, there is no money to give change from.\nyou need to fill the cash desk before changing the role.");
+                FillCashDesk();
+            }
+            else
+            {
+                Console.WriteLine("\nno products & money yet. cannot change the role.");
+                AddNewPositions();
+                FillCashDesk();
+            }
+        }
+    }
+
     public void AdminScenario()
     {
         Console.WriteLine("\nenter admin password below");
@@ -576,7 +599,7 @@ public class VendingMachine
         while(true)
         {
             Console.WriteLine("\nenter the amount of the face you want to add (positive integer)\nif you filled the cash desk, enter 'DONE'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
-            Console.WriteLine($"\n\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+            Console.WriteLine($"\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
             string? val = Console.ReadLine();
 
             if (string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val))
@@ -590,13 +613,13 @@ public class VendingMachine
             var parts = val.Split(",");
             if (parts.Length != 2)
             {
-                Console.WriteLine("\nwrong format. try again. FORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
+                Console.WriteLine("\nWRONG FORMAT. try again. FORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
                 continue;
             }
 
             if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
             {
-                Console.WriteLine($"\nwrong format. try again. FORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+                Console.WriteLine($"\nWRONG FORMAT. try again. FORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
                 continue;
             }
             CashDesk[face] += pieces;

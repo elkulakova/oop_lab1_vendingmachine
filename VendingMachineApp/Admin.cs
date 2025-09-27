@@ -55,25 +55,7 @@ public class Admin
             case "change role":
             case "change":
             case "3":
-                while (machine.AvailableProducts.Count == 0 || machine.CashDesk.Values.All(v => v == 0))
-                {
-                    if (machine.AvailableProducts.Count == 0)
-                    {
-                        Console.WriteLine("\nthere are no products added yet.\nyou need to add products before changing the role.");
-                        machine.AddNewPositions();
-                    }
-                    else if (machine.CashDesk.Values.All(v => v == 0))
-                    {
-                        Console.WriteLine("\nthe cash desk is empty, there is no money to give change from.\nyou need to fill the cash desk before changing the role.");
-                        machine.FillCashDesk();
-                    }
-                    else
-                    {
-                        Console.WriteLine("\nno products & money yet. cannot change the role.");
-                        machine.AddNewPositions();
-                        machine.FillCashDesk();
-                    }
-                }
+                machine.ChangeRoleCheck();
                 Console.WriteLine("\nchanging role to user....");
                 User user = new();
                 Console.WriteLine("\nhello, user! ready to choose?");
