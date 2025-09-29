@@ -1,9 +1,11 @@
+using System.ComponentModel;
+
 namespace VendingMachineApp;
 public class Admin(VendingMachine vendingMachine) // primary constructor, vendingMachine is already readonly field
 {
     public void ChooseTask()
     {
-        Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. view the content of the cash desk;\n4. fill the cash desk;\n5. change the role;\n6. exit program.");
+        Console.WriteLine("\nchoose the option you want to do:\n1. see products list\n2. refill products;\n3. collect the recieved money;\n4. view the content of the cash desk;\n5. fill the cash desk;\n6. change the role;\n7. exit program.");
         string? option = Console.ReadLine();
 
         while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
@@ -14,20 +16,30 @@ public class Admin(VendingMachine vendingMachine) // primary constructor, vendin
 
         switch (option.ToLower().Trim())
         {
-            case "1. refill products":
+            case "1. see products list":
+            case "see products":
+            case "products list":
+            case "see":
+            case "1":
+                vendingMachine.ProductsView();
+                ChooseTask();
+                return;
+
+
+            case "2. refill products":
             case "refill products":
             case "refill":
-            case "1":
+            case "2":
                 vendingMachine.RefillAddProducts();
                 ChooseTask();
                 return;
 
-            case "2. collect the recieved money":
+            case "3. collect the recieved money":
             case "collect the recieved money":
             case "collect money":
             case "collect":
-            case "2":
-                if (!vendingMachine.CheckDesk())
+            case "3":
+                if (vendingMachine.CheckDesk())
                 {
                     Console.WriteLine("\nthe cash desk is empty, there is no money to collect.");
                     ChooseTask();
@@ -38,50 +50,50 @@ public class Admin(VendingMachine vendingMachine) // primary constructor, vendin
                 ChooseTask();
                 return;
 
-            case "3. view the content of the cash desk":
+            case "4. view the content of the cash desk":
             case "view the content of the cash desk":
             case "view cash desk":
             case "view":
-            case "3":
+            case "4":
                 vendingMachine.ViewCashDesk();
                 ChooseTask();
                 return;
 
-            case "4. fill the cash desk":
+            case "5. fill the cash desk":
             case "fill the cash desk":
             case "fill cash desk":
             case "fill":
-            case "4":
+            case "5":
                 Console.WriteLine("\nfilling the cash desk....");
                 vendingMachine.FillCashDesk();
                 ChooseTask();
                 return;
 
-            case "5. change role":
+            case "6. change role":
             case "change role":
             case "change":
-            case "5":
+            case "6":
                 if (!vendingMachine.ChangeRoleCheck())
                 {
                     ChooseTask();
                     return;
                 }
                 Console.WriteLine("\nchanging role to user....");
-                User user = new();
+                User user = new(vendingMachine);
                 Console.WriteLine("\nhello, user! ready to choose?");
                 vendingMachine.UserScenario(user);
                 return;
 
-            case "6. exit program":
+            case "7. exit program":
             case "exit program":
             case "exit":
-            case "6":
+            case "7":
                 Console.WriteLine("\nexiting program....");
                 VendingMachine.ShutDown();
                 return;
 
             default:
-                Console.WriteLine("\ninvalid option. please choose 1, 2, 3, 4, 5 or 6.");
+                Console.WriteLine("\ninvalid option. please choose 1, 2, 3, 4, 5, 6 or 7.");
                 ChooseTask();
                 return;
         }

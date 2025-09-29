@@ -13,6 +13,7 @@ public class VendingMachine
     {
     }
 
+    // user interaction methods
     public string Payment(int id, int price, int amount)
     {
         int purchase_sum = price * amount;
@@ -223,15 +224,43 @@ public class VendingMachine
                 int prod_price = foundProduct.Price;
                 Console.WriteLine($"your PURCHASE: {foundProduct.Name} (id {foundProduct.Id}), price {foundProduct.Price} RUB, amount - {amount} piece(s).");
                 var res = Payment(id, prod_price, amount);
-                if (res == "refund" || res == "no_money" || res == "cancelled")
+                if (res == "refund" || res == "cancelled")
                 {
+                    Console.WriteLine("let's try again!");
                     continue;
+                }
+                if (res == "success")
+                {
+                    return;
                 }
             }
         }
     }
 
-    public void UserScenario(User consumer)
+    // see smth methods
+    public void ViewCashDesk()
+    {
+        Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
+        foreach (var entry in CashDesk)
+        {
+            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+        }
+    }
+
+    public void ProductsView()
+    {
+        Console.WriteLine("\nhere is the list of ALL products (in stock and out of stock):\n");
+        if (AvailableProducts.Count == 0)
+        {
+            Console.WriteLine("there are NO products ADDED YET, nothing to show.");
+        }
+        foreach (Product prod in AvailableProducts)
+        {
+            Console.WriteLine($"{prod.AdminInfoOutput()}");
+        }
+    }
+
+    public void StoreWindow()
     {
         Console.WriteLine("\nhere is the list of available products:\n");
 
@@ -242,109 +271,9 @@ public class VendingMachine
                 Console.WriteLine($"{prod.ConsumerInfoOutput()}");
             }
         }
-
-        if (AvailableProducts.All(prod => !prod.InStock))
-        {
-            Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
-            Console.WriteLine("\nwant to change role? (yes/no&exit)");
-            string? ans = Console.ReadLine();
-
-            while (string.IsNullOrEmpty(ans) || string.IsNullOrWhiteSpace(ans))
-            {
-                Console.WriteLine("entered answer cannot be empty. try again");
-                ans = Console.ReadLine();
-            }
-            switch (ans.ToLower().Trim())
-            {
-                case "yes":
-                case "y":
-                case "1":
-                    Console.WriteLine("\nchanging role to admin...."); // gap closure
-                    AdminScenario();
-                    return;
-
-                case "no&exit":
-                case "no":
-                case "n":
-                case "2":
-                    Console.WriteLine("\ngoodbye!");
-                    ShutDown();
-                    return;
-
-                default:
-                    Console.WriteLine("wrong input. try again");
-                    UserScenario(consumer);
-                    return;
-            }
-        }
-
-        Console.WriteLine("\nwant to buy something? (yes/no)");
-        string? answer = Console.ReadLine();
-
-        while (string.IsNullOrEmpty(answer) || string.IsNullOrWhiteSpace(answer))
-        {
-            Console.WriteLine("entered answer cannot be empty. try again");
-            answer = Console.ReadLine();
-        }
-
-        switch (answer.ToLower().Trim())
-        {
-            case "yes":
-            case "y":
-            case "1":
-                Purchase();
-                UserScenario(consumer);
-                return;
-
-            case "no":
-            case "n":
-            case "2":
-                Console.WriteLine("\nwant to change role? (yes/no&exit)");
-                string? ans = Console.ReadLine();
-
-                while (string.IsNullOrEmpty(ans) || string.IsNullOrWhiteSpace(ans))
-                {
-                    Console.WriteLine("entered answer cannot be empty. try again");
-                    ans = Console.ReadLine();
-                }
-                switch (ans.ToLower().Trim())
-                {
-                    case "yes":
-                    case "y":
-                    case "1":
-                        Console.WriteLine("\nchanging role to admin....");
-                        AdminScenario();
-                        return;
-
-                    case "no&exit":
-                    case "no":
-                    case "n":
-                    case "2":
-                        Console.WriteLine("\ngoodbye!");
-                        ShutDown();
-                        return;
-
-                    default:
-                        Console.WriteLine("wrong input. try again");
-                        UserScenario(consumer);
-                        return;
-                }
-            default:
-                Console.WriteLine("wrong input. try again");
-                UserScenario(consumer);
-                return;
-        }
     }
 
-    public void ViewCashDesk()
-    {
-        Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
-        foreach (var entry in CashDesk)
-        {
-            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
-        }
-    }
-
+    // admin interaction methods
     public void AddNewPositions()
     {
         Console.WriteLine("\nhow many product types do you want to add? enter an integer value.");
@@ -573,6 +502,46 @@ public class VendingMachine
         Console.WriteLine("\ncash desk is empty now");
     }
 
+    public void FillCashDesk()
+    {
+
+        while(true)
+        {
+            Console.WriteLine("\nenter the amount of the face you want to add (positive integer)\nif you filled the cash desk, enter 'DONE'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
+            Console.WriteLine($"\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+            string? val = Console.ReadLine();
+
+            if (string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val))
+            {
+                Console.WriteLine("\ninvalid value. try again");
+                continue;
+            }
+
+            else if (val.ToLower().Trim() == "done" || val.ToLower().Trim() == "finish" || val.ToLower().Trim() == "f" || val.ToLower().Trim() == "d") break;
+
+            var parts = val.Split(",");
+            if (parts.Length != 2)
+            {
+                Console.WriteLine("\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
+                continue;
+            }
+
+            if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
+            {
+                Console.WriteLine($"\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+                continue;
+            }
+            CashDesk[face] += pieces;
+        }
+
+        Console.WriteLine("\n\ncash desk has been successfully filled. current content:");
+        foreach (var entry in CashDesk)
+        {
+            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+        }
+    }
+
+    // checking
     public bool ChangeRoleCheck()
     {
         if (AvailableProducts.Count == 0 || CashDesk.Values.All(v => v == 0))
@@ -603,6 +572,47 @@ public class VendingMachine
     public bool CheckDesk()
     {
         return CashDesk.Values.All(v => v == 0);
+    }
+
+
+    // scenarios
+    public void UserScenario(User consumer)
+    {
+        if (AvailableProducts.All(prod => !prod.InStock))
+        {
+            Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
+            Console.WriteLine("\nwant to change the role? (yes/no&exit)");
+            string? ans = Console.ReadLine();
+
+            while (string.IsNullOrEmpty(ans) || string.IsNullOrWhiteSpace(ans))
+            {
+                Console.WriteLine("entered answer cannot be empty. try again");
+                ans = Console.ReadLine();
+            }
+            switch (ans.ToLower().Trim())
+            {
+                case "yes":
+                case "y":
+                case "1":
+                    Console.WriteLine("\nchanging role to admin....");
+                    AdminScenario();
+                    return;
+
+                case "no&exit":
+                case "no":
+                case "n":
+                case "2":
+                    Console.WriteLine("\ngoodbye!");
+                    ShutDown();
+                    return;
+
+                default:
+                    Console.WriteLine("wrong input. try again");
+                    UserScenario(consumer);
+                    return;
+            }
+        }
+        consumer.ChooseTask();
     }
 
     public void AdminScenario()
@@ -641,22 +651,33 @@ public class VendingMachine
         }
     }
 
-    public static void ShutDown()
+    private static bool FilledMachine()
     {
-        Environment.Exit(0);
+        Random rand = new();
+        bool randomBool = rand.Next(0, 2) == 0; // will be true if 0, false if 1
+        return randomBool;
     }
-
     public void MachineStart()
     {
-        if (AvailableProducts.Count == 0)
+        if (FilledMachine())
         {
-            Console.WriteLine("\nthere are no products added yet. you need to login as an admin to add new products.");
-            AdminScenario();
-            MachineStart();
-            return;
-        }
-        else
-        {
+            // filling the cash desk with random amount of random coins/banknotes
+            Random rand = new();
+            foreach (int face in Coin.Faces)
+            {
+                int pieces = rand.Next(0, 11); // from 1 to 10 pieces of each face
+                CashDesk[face] += pieces;
+            }
+
+            // adding some products
+            AvailableProducts.Add(new Product(1, "water 'saint spring'", 50, 100));
+            AvailableProducts.Add(new Product(2, "greek salad", 100, 50));
+            AvailableProducts.Add(new Product(3, "chiken karri sandwich", 120, 50));
+            AvailableProducts.Add(new Product(4, "pancackes with marple syrup", 120, 100));
+            AvailableProducts.Add(new Product(5, "nut&dried fruits mix", 100, 100));
+            IdSet.UnionWith([1, 2, 3, 4, 5]);
+            NamingSet.UnionWith(["water 'saint spring'", "greek salad", "chiken karri sandwich", "pancackes with marple syrup", "nut&dried fruits mix"]);
+
             Console.WriteLine("\nchoose your role: user or admin");
             string? role = Console.ReadLine();
 
@@ -670,7 +691,7 @@ public class VendingMachine
             {
                 case "user":
                 case "1":
-                    User user = new();
+                    User user = new(this);
                     UserScenario(user);
                     return;
 
@@ -685,44 +706,16 @@ public class VendingMachine
                     return;
             }
         }
+        else
+        {
+            Console.WriteLine("\nthere are no products added yet. you need to login as an admin to add new products.");
+            AdminScenario();
+            return;
+        }
     }
 
-    public void FillCashDesk()
+    public static void ShutDown()
     {
-
-        while(true)
-        {
-            Console.WriteLine("\nenter the amount of the face you want to add (positive integer)\nif you filled the cash desk, enter 'DONE'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
-            Console.WriteLine($"\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
-            string? val = Console.ReadLine();
-
-            if (string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val))
-            {
-                Console.WriteLine("\ninvalid value. try again");
-                continue;
-            }
-
-            else if (val.ToLower().Trim() == "done" || val.ToLower().Trim() == "finish" || val.ToLower().Trim() == "f" || val.ToLower().Trim() == "d") break;
-
-            var parts = val.Split(",");
-            if (parts.Length != 2)
-            {
-                Console.WriteLine("\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
-                continue;
-            }
-
-            if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
-            {
-                Console.WriteLine($"\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
-                continue;
-            }
-            CashDesk[face] += pieces;
-        }
-
-        Console.WriteLine("\n\ncash desk has been successfully filled. current content:");
-        foreach (var entry in CashDesk)
-        {
-            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
-        }
+        Environment.Exit(0);
     }
 }
