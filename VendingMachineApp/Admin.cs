@@ -1,20 +1,7 @@
 namespace VendingMachineApp;
-public class Admin
+public class Admin(VendingMachine vendingMachine) // primary constructor, vendingMachine is already readonly field
 {
-    public Admin(string password, VendingMachine machine)
-    {
-        if (password != "admin_password")
-        {
-            Console.WriteLine("\nyou cannot log in as an admin untill you enter the valid pasword");
-            machine.MachineStart();
-        }
-        else
-        {
-            Console.WriteLine("\nyou are authorized as admin!");
-        }
-    }
-
-    public static void ChooseTask(VendingMachine machine)
+    public void ChooseTask()
     {
         Console.WriteLine("\nchoose the option you want to do:\n1. refill products;\n2. collect the recieved money;\n3. view the content of the cash desk;\n4. fill the cash desk;\n5. change the role;\n6. exit program.");
         string? option = Console.ReadLine();
@@ -31,8 +18,8 @@ public class Admin
             case "refill products":
             case "refill":
             case "1":
-                machine.RefillAddProducts();
-                ChooseTask(machine);
+                vendingMachine.RefillAddProducts();
+                ChooseTask();
                 return;
 
             case "2. collect the recieved money":
@@ -40,15 +27,15 @@ public class Admin
             case "collect money":
             case "collect":
             case "2":
-                while (machine.CashDesk.Values.All(v => v == 0))
+                if (!vendingMachine.CheckDesk())
                 {
-                    Console.WriteLine("\ncash desk is empty, there is no money to collect");
-                    ChooseTask(machine);
+                    Console.WriteLine("\nthe cash desk is empty, there is no money to collect.");
+                    ChooseTask();
                     return;
                 }
                 Console.WriteLine("\ncollecting money....");
-                machine.CollectMoney();
-                ChooseTask(machine);
+                vendingMachine.CollectMoney();
+                ChooseTask();
                 return;
 
             case "3. view the content of the cash desk":
@@ -56,8 +43,8 @@ public class Admin
             case "view cash desk":
             case "view":
             case "3":
-                machine.ViewCashDesk();
-                ChooseTask(machine);
+                vendingMachine.ViewCashDesk();
+                ChooseTask();
                 return;
 
             case "4. fill the cash desk":
@@ -66,19 +53,23 @@ public class Admin
             case "fill":
             case "4":
                 Console.WriteLine("\nfilling the cash desk....");
-                machine.FillCashDesk();
-                ChooseTask(machine);
+                vendingMachine.FillCashDesk();
+                ChooseTask();
                 return;
 
             case "5. change role":
             case "change role":
             case "change":
             case "5":
-                machine.ChangeRoleCheck();
+                if (!vendingMachine.ChangeRoleCheck())
+                {
+                    ChooseTask();
+                    return;
+                }
                 Console.WriteLine("\nchanging role to user....");
                 User user = new();
                 Console.WriteLine("\nhello, user! ready to choose?");
-                machine.UserScenario(user);
+                vendingMachine.UserScenario(user);
                 return;
 
             case "6. exit program":
@@ -90,8 +81,8 @@ public class Admin
                 return;
 
             default:
-                Console.WriteLine("\ninvalid option. please choose 1, 2, 3 or 4.");
-                ChooseTask(machine);
+                Console.WriteLine("\ninvalid option. please choose 1, 2, 3, 4, 5 or 6.");
+                ChooseTask();
                 return;
         }
     }

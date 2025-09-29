@@ -24,8 +24,13 @@ public class VendingMachine
         Console.WriteLine("\n\nyou can pay the amount in several steps, using coins/banknotes of different faces\nwhen finish, enter 'PAY'\n");
         Console.WriteLine("\nlet's start payment. enter the number of pieces of each face you want to use\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)");
 
-        while (true)
+        while (true) // don't break until payment approval or cancellation, as in a real vending machine button 'pay'
         {
+            if (user_summa <= purchase_sum)
+            {
+                Console.WriteLine($"\nthe REMAINING amount to pay is {purchase_sum - user_summa} RUB");
+            }
+            Console.WriteLine($"\nDEPOSITED amount is {user_summa} RUB");
             Console.WriteLine("\nenter the amount of the face you want to use (positive integer)\nif you want to cancel the purchase, enter 'CANCEL'\nif you have finished payment, enter 'PAY'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
             Console.WriteLine($"\n\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
             string? num = Console.ReadLine();
@@ -36,7 +41,7 @@ public class VendingMachine
                 continue;
             }
 
-            else if (num.ToLower().Trim() == "pay")
+            else if (num.ToLower().Trim() == "pay" || num.ToLower().Trim() == "p" || num.ToLower().Trim() == "finish" || num.ToLower().Trim() == "f" || num.ToLower().Trim() == "done" || num.ToLower().Trim() == "d")
             {
                 if (user_summa < purchase_sum)
                 {
@@ -71,7 +76,6 @@ public class VendingMachine
                     continue;
                 }
                 user_summa += int.Parse(parts[0]) * int.Parse(parts[1]);
-                Console.WriteLine($"\nthe REMAINING amount to pay is {purchase_sum - user_summa} RUB\nDEPOSITED amount is {user_summa} RUB");
                 purchase_dict[face] = purchase_dict.GetValueOrDefault(face, 0) + pieces;
             }
         }
@@ -83,7 +87,7 @@ public class VendingMachine
             {
                 Product innerProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
                 innerProduct.Quantity -= amount;
-                Console.WriteLine($"\nyou have successfully bought {amount} pieces of {innerProduct.Name} (id {innerProduct.Id}). enjoy your product(s)!");
+                Console.WriteLine($"\nyou have successfully bought {amount} piece(s) of {innerProduct.Name} (id {innerProduct.Id}). enjoy your product(s)!");
                 return "success";
             }
             else
@@ -136,9 +140,10 @@ public class VendingMachine
         }
         else
         {
-            Console.WriteLine($"\n\nhere is YOUR CHANGE of {change} RUB, given as follows:");
+            Console.WriteLine($"\n\nhere is YOUR CHANGE given as follows:");
             foreach (var entry in change_dict)
             {
+                if (entry.Value == 0) continue;
                 Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
                 CashDesk[entry.Key] -= entry.Value;
             }
@@ -177,7 +182,7 @@ public class VendingMachine
                 }
             }
 
-            Console.WriteLine($"\navailable product ids: {string.Join(", ", IdSet)}");
+            Console.WriteLine($"\navailable products ids: {string.Join(", ", IdSet)}");
             Console.WriteLine("\nenter product id and the amount you want to buy.\nFORMAT EXAMPLE: 10, 3 (id 10, pieces 3)\nif you want to exit purchasing, enter 'CANCEL'");
             string? desire = Console.ReadLine();
 
@@ -272,7 +277,7 @@ public class VendingMachine
                     return;
             }
         }
-        
+
         Console.WriteLine("\nwant to buy something? (yes/no)");
         string? answer = Console.ReadLine();
 
@@ -307,7 +312,7 @@ public class VendingMachine
                     case "yes":
                     case "y":
                     case "1":
-                        Console.WriteLine("\nchanging role to admin...."); // gap closure
+                        Console.WriteLine("\nchanging role to admin....");
                         AdminScenario();
                         return;
 
@@ -355,7 +360,7 @@ public class VendingMachine
 
         for (int i = 0; i < prod_num; i++)
         {
-            Console.WriteLine("\nenter product id (int), product name (string), product price (int) and product quantity (int), separate with comma.\nformat example: 1, water 'saint spring', 50, 100.");
+            Console.WriteLine("\nenter product id (POSITIVE int), product name (string), product price (POSITIVE int) and product quantity (POSITIVE int), separate with comma.\nFORMAT EXAMPLE: 1, water 'saint spring', 50, 100.");
             string? input_prod = Console.ReadLine();
 
             if (string.IsNullOrEmpty(input_prod) || string.IsNullOrWhiteSpace(input_prod))
@@ -376,14 +381,14 @@ public class VendingMachine
 
             string name = parts[1].Trim();
 
-            if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[2].Trim(), out int price) || price < 0 || !int.TryParse(parts[3].Trim(), out int quantity) || quantity <= 0)
+            if (!int.TryParse(parts[0].Trim(), out int id) || id <= 0 || !int.TryParse(parts[2].Trim(), out int price) || price <= 0 || !int.TryParse(parts[3].Trim(), out int quantity) || quantity <= 0)
             {
                 Console.WriteLine("\nenter product data in a correct way");
                 i--;
                 continue;
             }
 
-            if (!IdSet.Contains(id) && !NamingSet.Contains(name)) // if id and name are new
+            if (!IdSet.Contains(id) && !NamingSet.Contains(name))
             {
                 Product product_exemp = new(id, name, price, quantity);
                 AvailableProducts.Add(product_exemp);
@@ -391,31 +396,41 @@ public class VendingMachine
                 NamingSet.Add(name);
                 Console.WriteLine($"\nyou added a new product: {product_exemp.AdminInfoOutput()}");
             }
-            else if (!IdSet.Contains(id) && NamingSet.Contains(name)) // if id is new but name exists
+            else if (!IdSet.Contains(id) && NamingSet.Contains(name))
             {
                 Console.WriteLine($"\nproduct with name '{name}' already exists. change the parameters and try again.");
                 i--;
                 continue;
             }
-            else if (IdSet.Contains(id) && !NamingSet.Contains(name)) // if id exists but name is new
+            else if (IdSet.Contains(id) && !NamingSet.Contains(name))
             {
                 Console.WriteLine($"\nproduct with id {id} already exists. change the parameters and try again.");
                 i--;
                 continue;
             }
-            else if (IdSet.Contains(id) && NamingSet.Contains(name)) // if both id and name exist
+            else if (IdSet.Contains(id) && NamingSet.Contains(name))
             {
-                Product existingProduct = AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
-                Console.WriteLine($"\nid {id} already exists: {existingProduct.AdminInfoOutput()}. change the parameters and try again.");
-                i--;
-                continue;
+                Product existingProductId = AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
+                Product existingProductName = AvailableProducts.First(product => product.Name == name);
+                if (existingProductId == existingProductName)
+                {
+                    Console.WriteLine($"\nproduct {name} (id {id}) already exists: {existingProductId.AdminInfoOutput()}. change the parameters and try again.");
+                    i--;
+                    continue;
+                }
+                else
+                {
+                    Console.WriteLine($"\nTHERE ARE TWO DIFFERENT PRODUCTS\nid {id} already exists: {existingProductId.AdminInfoOutput()}.\nproduct {name} already exists: {existingProductName.AdminInfoOutput()}.\nchange the parameters and try again.");
+                    i--;
+                    continue;
+                }
             }
         }
     }
 
     public void RefillProducts()
     {
-        Console.WriteLine("\nhow many types of products do you want to refill? enter an integer value.");
+        Console.WriteLine("\nhow many different types of products do you want to refill? enter an integer value.");
         string? str_types = Console.ReadLine();
 
         int types_num;
@@ -428,7 +443,7 @@ public class VendingMachine
 
         for (int i = 0; i < types_num; i++)
         {
-            Console.WriteLine("\nenter prodict id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount} (without curly braces, just 2 intengers separsted by a comma)");
+            Console.WriteLine("\nenter product id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount}\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces)");
             string? prod_data = Console.ReadLine();
 
             bool success = false;
@@ -445,7 +460,7 @@ public class VendingMachine
                 var parts = prod_data.Split(",");
                 if (parts.Length != 2)
                 {
-                    Console.WriteLine("\nwrong format. use: ProductId, ProductAmount. try again:");
+                    Console.WriteLine("\nwrong format. use: ProductId, ProductAmount.\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces). try again:");
                     i--;
                     continue;
                 }
@@ -473,7 +488,7 @@ public class VendingMachine
         }
     }
 
-    public void RefillAddProducts() // ststic is suggested by VSCode
+    public void RefillAddProducts()
     {
         if (AvailableProducts.Count == 0)
         {
@@ -510,7 +525,6 @@ public class VendingMachine
                 case "1":
                     Console.WriteLine("\nrefilling products....");
                     RefillProducts();
-                    Admin.ChooseTask(this);
                     return;
 
                 case "2. add new product":
@@ -521,7 +535,6 @@ public class VendingMachine
                 case "2":
                     Console.WriteLine("\nadding new products....");
                     AddNewPositions();
-                    Admin.ChooseTask(this);
                     return;
 
                 case "3. exit to main menu":
@@ -529,7 +542,6 @@ public class VendingMachine
                 case "exit":
                 case "3":
                     Console.WriteLine("\nexiting to main menu....");
-                    Admin.ChooseTask(this);
                     return;
 
                 default:
@@ -561,7 +573,7 @@ public class VendingMachine
         Console.WriteLine("\ncash desk is empty now");
     }
 
-    public void ChangeRoleCheck()
+    public bool ChangeRoleCheck()
     {
         if (AvailableProducts.Count == 0 || CashDesk.Values.All(v => v == 0))
         {
@@ -569,19 +581,28 @@ public class VendingMachine
             {
                 Console.WriteLine("\nthere are no products added yet.\nyou need to add products before changing the role.");
                 AddNewPositions();
+                return false;
             }
             else if (AvailableProducts.Count != 0 && CashDesk.Values.All(v => v == 0))
             {
                 Console.WriteLine("\nthe cash desk is empty, there is no money to give change from.\nyou need to fill the cash desk before changing the role.");
                 FillCashDesk();
+                return false;
             }
             else
             {
                 Console.WriteLine("\nno products & money yet. cannot change the role.");
                 AddNewPositions();
                 FillCashDesk();
+                return false;
             }
         }
+        return true;
+    }
+
+    public bool CheckDesk()
+    {
+        return CashDesk.Values.All(v => v == 0);
     }
 
     public void AdminScenario()
@@ -594,15 +615,29 @@ public class VendingMachine
             Console.WriteLine("\nadmin password cannot be empty.");
             return;
         }
-        try
-        {
-            var admin = new Admin(password, this);
 
-            Admin.ChooseTask(this);
-        }
-        catch (ArgumentException ex)
+        if (password.ToLower().Trim() == "admin_password")
         {
-            Console.WriteLine($"{ex.Message}");
+            try
+            {
+                var admin = new Admin(this);
+
+                Console.WriteLine("\nyou are authorized as admin!");
+                admin.ChooseTask();
+                return;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nerror occurred: {ex.Message}\nreturning to main menu....");
+                MachineStart();
+                return;
+            }
+        }
+        else
+        {
+            Console.WriteLine("\nwrong password. returning to main menu....");
+            MachineStart();
+            return;
         }
     }
 
@@ -615,7 +650,7 @@ public class VendingMachine
     {
         if (AvailableProducts.Count == 0)
         {
-            Console.WriteLine("\nthere are no products added yet. you need to login as admin to add new products.");
+            Console.WriteLine("\nthere are no products added yet. you need to login as an admin to add new products.");
             AdminScenario();
             MachineStart();
             return;
@@ -672,13 +707,13 @@ public class VendingMachine
             var parts = val.Split(",");
             if (parts.Length != 2)
             {
-                Console.WriteLine("\nWRONG FORMAT. try again. FORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
+                Console.WriteLine("\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
                 continue;
             }
 
             if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
             {
-                Console.WriteLine($"\nWRONG FORMAT. try again. FORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+                Console.WriteLine($"\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
                 continue;
             }
             CashDesk[face] += pieces;
