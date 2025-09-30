@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices.Marshalling;
+
 namespace VendingMachineApp;
 public class VendingMachine
 {
@@ -5,7 +8,8 @@ public class VendingMachine
     private readonly List<Product> AvailableProducts = []; // filled by Admin
     private readonly HashSet<int> IdSet = []; // filled automatically
     private readonly HashSet<string> NamingSet = []; // filled automatically
-    private readonly Dictionary<int, int> CashDesk = Coin.Faces.ToDictionary(k => k, k => 0); // filled automatically
+    private static readonly HashSet<int> FacesSet = [1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000]; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
+    private readonly HashSet<Coin> CashDesk = []; // Coin.Faces.ToDictionary(k => k, k => 0); // filled automatically or by Admin, so can be null when initializing the machine
 
     public VendingMachine()
     {
@@ -17,9 +21,9 @@ public class VendingMachine
         int purchase_sum = price * amount;
 
         int user_summa = 0;
-        Dictionary<int, int> purchase_dict = [];
+        HashSet<Coin> purchase_list = [];
 
-        Console.WriteLine($"\nthe total sum of your purchase is {purchase_sum} RUB.\nplease, pay the amount using coins/banknotes of the following FACES: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB.\n\nif you want to cancel the purchase, enter 'CANCEL'");
+        Console.WriteLine($"\nthe total sum of your purchase is {purchase_sum} RUB.\nplease, pay the amount using coins/banknotes of the following FACES: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB.\n\nif you want to cancel the purchase, enter 'CANCEL'");
         Console.WriteLine("\n\nyou can pay the amount in several steps, using coins/banknotes of different faces\nwhen finish, enter 'PAY'\n");
         Console.WriteLine("\nlet's start payment. enter the number of pieces of each face you want to use\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)");
 
@@ -31,7 +35,7 @@ public class VendingMachine
             }
             Console.WriteLine($"\nDEPOSITED amount is {user_summa} RUB");
             Console.WriteLine("\nenter the amount of the face you want to use (positive integer)\nif you want to cancel the purchase, enter 'CANCEL'\nif you have finished payment, enter 'PAY'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
-            Console.WriteLine($"\n\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+            Console.WriteLine($"\n\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
             string? num = Console.ReadLine();
 
             if (string.IsNullOrEmpty(num) || string.IsNullOrWhiteSpace(num))
@@ -49,16 +53,12 @@ public class VendingMachine
                 }
                 else
                 {
-                    foreach (var entry in purchase_dict)
-                    {
-                        CashDesk[entry.Key] += entry.Value;
-                    }
                     break;
                 }
             }
             else if (num.ToLower().Trim() == "cancel" || num.ToLower().Trim() == "c" || num.ToLower().Trim() == "exit" || num.ToLower().Trim() == "quit" || num.ToLower().Trim() == "q" || num.ToLower().Trim() == "e")
             {
-                RefundMoney(purchase_dict);
+                RefundMoney(purchase_list);
                 return "cancelled";
             }
             else
@@ -69,19 +69,27 @@ public class VendingMachine
                     Console.WriteLine("\nwrong format. try again. FORMAT EXAMPLE: 10, 5.");
                     continue;
                 }
-                if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
+                if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !FacesSet.Contains(face))
                 {
-                    Console.WriteLine($"\nwrong format. try again. FORMAT EXAMPLE: 10, 5.\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+                    Console.WriteLine($"\nwrong format. try again. FORMAT EXAMPLE: 10, 5.\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
                     continue;
                 }
-                user_summa += int.Parse(parts[0]) * int.Parse(parts[1]);
-                purchase_dict[face] = purchase_dict.GetValueOrDefault(face, 0) + pieces;
+                user_summa += face * pieces;
+                Coin? existingCoin = purchase_list.FirstOrDefault(coin => coin.Face == face);
+                if (existingCoin != null)
+                {
+                    existingCoin.Amount += pieces;
+                }
+                else
+                {
+                    purchase_list.Add(new Coin(face, pieces));
+                }
             }
         }
         if (user_summa > purchase_sum)
         {
             int user_change = user_summa - purchase_sum;
-            string result = GiveCharge(user_change, purchase_dict);
+            string result = GiveChange(user_change, purchase_list);
             if (result == "change")
             {
                 Product innerProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
@@ -104,59 +112,83 @@ public class VendingMachine
         }
     }
 
-    public string GiveCharge(int change, Dictionary<int, int> money_dict)
+    public string GiveChange(int change, HashSet<Coin> money_list)
     {
-        Dictionary<int, int> change_dict = [];
+        HashSet<Coin> temp_desk = [.. CashDesk.Select(coin => new Coin(coin.Face, coin.Amount))];
+
+        foreach (var entry in money_list)
+        {
+            Coin? existingCoin = temp_desk.FirstOrDefault(coin => coin.Face == entry.Face);
+            if (existingCoin != null)
+            {
+                existingCoin.Amount += entry.Amount;
+            }
+            else
+            {
+                temp_desk.Add(new Coin(entry.Face, entry.Amount));
+            }
+        }
+
+        HashSet<Coin> change_list = [];
         int remaining = change;
 
-        foreach (int face in Coin.Faces.OrderByDescending(f => f))
+        foreach (int face in FacesSet.OrderByDescending(f => f))
         {
             if (remaining == 0) break;
 
             int needed = remaining / face;
 
-            if (needed > 0)
-            {
-                int available = CashDesk.TryGetValue(face, out int value) ? value : 0;
+            Coin? foundCoin = temp_desk.FirstOrDefault(coin => coin.Face == face && coin.Amount > 0);
 
-                if (available >= needed)
-                {
-                    change_dict[face] = needed;
-                    remaining -= needed * face;
-                }
-                else
-                {
-                    change_dict[face] = available;
-                    remaining -= available * face;
-                }
+            if (needed > 0 && foundCoin != null)
+            {
+                int available = foundCoin.Amount;
+                int to_give = Math.Min(available, needed);
+                change_list.Add(new Coin(face, to_give)); // to_give is always > 0
+                remaining -= to_give * face;
+                foundCoin.Amount -= to_give;
             }
         }
         if (remaining > 0)
         {
-            RefundMoney(money_dict);
+            RefundMoney(money_list);
             Console.WriteLine($"\n\nsorry, there is NOT ENOUGH CHANGE in the machine/there is enough change but there is NO POSSIBILITY to give you precisely {change} RUB. your money has been refunded");
             return "refund";
         }
         else
         {
-            Console.WriteLine($"\n\nhere is YOUR CHANGE given as follows:");
-            foreach (var entry in change_dict)
+            foreach (var entry in money_list)
             {
-                if (entry.Value == 0) continue;
-                Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
-                CashDesk[entry.Key] -= entry.Value;
+                Coin? existingCoin = CashDesk.FirstOrDefault(coin => coin.Face == entry.Face);
+                if (existingCoin != null)
+                {
+                    existingCoin.Amount += entry.Amount;
+                }
+                else
+                {
+                    CashDesk.Add(new Coin(entry.Face, entry.Amount));
+                }
+            }
+
+            Console.WriteLine($"\n\nhere is YOUR CHANGE given as follows:");
+            foreach (Coin entry in change_list)
+            {
+                Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
+
+                Coin foundCoin = CashDesk.First(coin => coin.Face == entry.Face);
+                foundCoin.Amount -= entry.Amount;
             }
             Console.WriteLine($"\nyour change {change} RUB has been given");
             return "change";
         }
     }
 
-    public static void RefundMoney(Dictionary<int, int> user_money)
+    public static void RefundMoney(HashSet<Coin> user_money)
     {
         Console.WriteLine("\n\nhere is the money you have deposited:");
         foreach (var entry in user_money)
         {
-            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
         }
         Console.WriteLine("\nyour money HAS BEEN REFUNDED");
     }
@@ -181,7 +213,15 @@ public class VendingMachine
                 }
             }
 
-            Console.WriteLine($"\navailable products ids: {string.Join(", ", IdSet)}");
+            HashSet<int> availableIds = [];
+            foreach (Product prod in AvailableProducts)
+            {
+                if (prod.InStock)
+                {
+                    availableIds.Add(prod.Id);
+                }
+            }
+            Console.WriteLine($"\navailable products ids: {string.Join(", ", availableIds.OrderBy(id => id))}");
             Console.WriteLine("\nenter product id and the amount you want to buy.\nFORMAT EXAMPLE: 10, 3 (id 10, pieces 3)\nif you want to exit purchasing, enter 'CANCEL'");
             string? desire = Console.ReadLine();
 
@@ -215,7 +255,7 @@ public class VendingMachine
 
                 if (foundProduct is null)
                 {
-                    Console.WriteLine($"wrong id. choose one of the list {IdSet}");
+                    Console.WriteLine($"wrong id. choose one of the list {availableIds.OrderBy(i => i)} or the amount is more than in stock. try again.");
                     continue;
                 }
 
@@ -241,7 +281,7 @@ public class VendingMachine
         Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
         foreach (var entry in CashDesk)
         {
-            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
         }
     }
 
@@ -481,20 +521,19 @@ public class VendingMachine
 
     public void CollectMoney()
     {
-        var cashDesk = CashDesk;
         int summa = 0;
 
-        foreach (var entry in cashDesk)
+        foreach (var entry in CashDesk)
         {
-            summa += entry.Key * entry.Value;
-            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+            summa += entry.Face * entry.Amount;
+            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
         }
 
         Console.WriteLine($"\n{summa} RUB collected");
 
-        foreach (int face in Coin.Faces)
+        foreach (Coin coin in CashDesk)
         {
-            cashDesk[face] = 0;
+            coin.Amount = 0;
         }
 
         Console.WriteLine("\ncash desk is empty now");
@@ -505,8 +544,8 @@ public class VendingMachine
 
         while(true)
         {
-            Console.WriteLine("\nenter the amount of the face you want to add (positive integer)\nif you filled the cash desk, enter 'DONE'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n\n");
-            Console.WriteLine($"\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+            Console.WriteLine("\nenter the amount of the face you want to add (positive integer)\nif you filled the cash desk, enter 'DONE'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n");
+            Console.WriteLine($"\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
             string? val = Console.ReadLine();
 
             if (string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val))
@@ -524,18 +563,28 @@ public class VendingMachine
                 continue;
             }
 
-            if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !Coin.Faces.Contains(face))
+            if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !FacesSet.Contains(face))
             {
-                Console.WriteLine($"\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", Coin.Faces.OrderBy(f => f))} RUB");
+                Console.WriteLine($"\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
                 continue;
             }
-            CashDesk[face] += pieces;
+
+            Coin? existingCoin = CashDesk.FirstOrDefault(coin => coin.Face == face);
+
+            if (existingCoin != null)
+            {
+                existingCoin.Amount += pieces;
+            }
+            else
+            {
+                CashDesk.Add(new Coin(face, pieces));
+            }
         }
 
         Console.WriteLine("\n\ncash desk has been successfully filled. current content:");
-        foreach (var entry in CashDesk)
+        foreach (Coin entry in CashDesk)
         {
-            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
+            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
         }
     }
 
@@ -569,7 +618,7 @@ public class VendingMachine
 
     public bool CheckDesk()
     {
-        return CashDesk.Values.All(v => v == 0);
+        return CashDesk.All(a => a.Amount == 0) || CashDesk.Count == 0;
     }
 
     // scenarios
@@ -661,10 +710,10 @@ public class VendingMachine
         {
             // filling the cash desk with random amount of random coins/banknotes
             Random rand = new();
-            foreach (int face in Coin.Faces)
+            foreach (int face in FacesSet)
             {
                 int pieces = rand.Next(0, 11); // from 1 to 10 pieces of each face
-                CashDesk[face] += pieces;
+                CashDesk.Add(new Coin(face, pieces));
             }
 
             // adding some products
