@@ -5,23 +5,21 @@ namespace VendingMachineApp;
 public class VendingMachine
 {
     private bool isRunning = true;
-    private readonly List<Product> AvailableProducts = []; // filled by Admin
-    private readonly HashSet<int> IdSet = []; // filled automatically
-    private readonly HashSet<string> NamingSet = []; // filled automatically
+    private readonly FoodWarehouse foodWarehouse = new();
     private static readonly HashSet<int> FacesSet = [1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000]; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
-    private readonly HashSet<Coin> CashDesk = []; // Coin.Faces.ToDictionary(k => k, k => 0); // filled automatically or by Admin, so can be null when initializing the machine
+    private readonly CashDesk cashDesk = new(); // filled automatically or by Admin, so can be null when initializing the machine
 
     public VendingMachine()
     {
     }
 
     // user interaction methods
-    public string Payment(int id, int price, int amount)
+    private string Payment(int id, int price, int amount)
     {
         int purchase_sum = price * amount;
 
         int user_summa = 0;
-        HashSet<Coin> purchase_list = [];
+        CashDesk purchase_list = new();
 
         Console.WriteLine($"\nthe total sum of your purchase is {purchase_sum} RUB.\nplease, pay the amount using coins/banknotes of the following FACES: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB.\n\nif you want to cancel the purchase, enter 'CANCEL'");
         Console.WriteLine("\n\nyou can pay the amount in several steps, using coins/banknotes of different faces\nwhen finish, enter 'PAY'\n");
@@ -75,121 +73,40 @@ public class VendingMachine
                     continue;
                 }
                 user_summa += face * pieces;
-                Coin? existingCoin = purchase_list.FirstOrDefault(coin => coin.Face == face);
-                if (existingCoin != null)
-                {
-                    existingCoin.Amount += pieces;
-                }
-                else
-                {
-                    purchase_list.Add(new Coin(face, pieces));
-                }
+                purchase_list.AddCoin(face, pieces);
             }
         }
         if (user_summa > purchase_sum)
         {
             int user_change = user_summa - purchase_sum;
-            string result = GiveChange(user_change, purchase_list);
+            string result = cashDesk.GiveChange(user_change, purchase_list.GetCoinsSet());
             if (result == "change")
             {
-                Product innerProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
+                Product innerProduct = foodWarehouse.GetProducts().First(prod => prod.Id == id); // no default, checked existance of id before payment
                 innerProduct.Quantity -= amount;
                 Console.WriteLine($"\nyou have successfully bought {amount} piece(s) of {innerProduct.Name} (id {innerProduct.Id}). enjoy your product(s)!");
                 return "success";
             }
             else
             {
+                RefundMoney(purchase_list);
                 return "refund";
             }
         }
         else
         {
             Console.WriteLine("\nthank you for exact payment");
-            Product foundProduct = AvailableProducts.First(prod => prod.Id == id); // no default, checked existance of id before payment
+            Product foundProduct = foodWarehouse.GetProducts().First(prod => prod.Id == id); // no default, checked existance of id before payment
             foundProduct.Quantity -= amount;
             Console.WriteLine($"\nyou have successfully bought {amount} piece(s) of {foundProduct.Name} (id {foundProduct.Id}). enjoy your product(s)!");
             return "success";
         }
     }
 
-    public string GiveChange(int change, HashSet<Coin> money_list)
-    {
-        HashSet<Coin> temp_desk = [.. CashDesk.Select(coin => new Coin(coin.Face, coin.Amount))];
-
-        foreach (var entry in money_list)
-        {
-            Coin? existingCoin = temp_desk.FirstOrDefault(coin => coin.Face == entry.Face);
-            if (existingCoin != null)
-            {
-                existingCoin.Amount += entry.Amount;
-            }
-            else
-            {
-                temp_desk.Add(new Coin(entry.Face, entry.Amount));
-            }
-        }
-
-        HashSet<Coin> change_list = [];
-        int remaining = change;
-
-        foreach (int face in FacesSet.OrderByDescending(f => f))
-        {
-            if (remaining == 0) break;
-
-            int needed = remaining / face;
-
-            Coin? foundCoin = temp_desk.FirstOrDefault(coin => coin.Face == face && coin.Amount > 0);
-
-            if (needed > 0 && foundCoin != null)
-            {
-                int available = foundCoin.Amount;
-                int to_give = Math.Min(available, needed);
-                change_list.Add(new Coin(face, to_give)); // to_give is always > 0
-                remaining -= to_give * face;
-                foundCoin.Amount -= to_give;
-            }
-        }
-        if (remaining > 0)
-        {
-            RefundMoney(money_list);
-            Console.WriteLine($"\n\nsorry, there is NOT ENOUGH CHANGE in the machine/there is enough change but there is NO POSSIBILITY to give you precisely {change} RUB. your money has been refunded");
-            return "refund";
-        }
-        else
-        {
-            foreach (var entry in money_list)
-            {
-                Coin? existingCoin = CashDesk.FirstOrDefault(coin => coin.Face == entry.Face);
-                if (existingCoin != null)
-                {
-                    existingCoin.Amount += entry.Amount;
-                }
-                else
-                {
-                    CashDesk.Add(new Coin(entry.Face, entry.Amount));
-                }
-            }
-
-            Console.WriteLine($"\n\nhere is YOUR CHANGE given as follows:");
-            foreach (Coin entry in change_list)
-            {
-                Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
-
-                Coin foundCoin = CashDesk.First(coin => coin.Face == entry.Face);
-                foundCoin.Amount -= entry.Amount;
-            }
-            Console.WriteLine($"\nyour change {change} RUB has been given");
-            return "change";
-        }
-    }
-
-    public static void RefundMoney(HashSet<Coin> user_money)
+    private static void RefundMoney(CashDesk user_money)
     {
         Console.WriteLine("\n\nhere is the money you have deposited:");
-        foreach (var entry in user_money)
-        {
-            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
-        }
+        user_money.View();
         Console.WriteLine("\nyour money HAS BEEN REFUNDED");
     }
 
@@ -197,30 +114,16 @@ public class VendingMachine
     {
         while (true)
         {
-            if (AvailableProducts.All(prod => !prod.InStock))
+            if (!foodWarehouse.HasAvailableProducts())
             {
                 Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
                 return;
             }
 
-            Console.WriteLine("\nhere is the list of AVAILABLE products:\n");
+            foodWarehouse.ViewProducts("user");
 
-            foreach (Product prod in AvailableProducts)
-            {
-                if (prod.ConsumerInfoOutput() is not null)
-                {
-                    Console.WriteLine($"{prod.ConsumerInfoOutput()}");
-                }
-            }
+            HashSet<int> availableIds = foodWarehouse.GetAvailableProductIds();
 
-            HashSet<int> availableIds = [];
-            foreach (Product prod in AvailableProducts)
-            {
-                if (prod.InStock)
-                {
-                    availableIds.Add(prod.Id);
-                }
-            }
             Console.WriteLine($"\navailable products ids: {string.Join(", ", availableIds.OrderBy(id => id))}");
             Console.WriteLine("\nenter product id and the amount you want to buy.\nFORMAT EXAMPLE: 10, 3 (id 10, pieces 3)\nif you want to exit purchasing, enter 'CANCEL'");
             string? desire = Console.ReadLine();
@@ -251,7 +154,8 @@ public class VendingMachine
                     continue;
                 }
 
-                Product? foundProduct = AvailableProducts.FirstOrDefault(prod => prod.Id == id && prod.Quantity >= amount);
+
+                Product? foundProduct = foodWarehouse.GetProducts().FirstOrDefault(prod => prod.Id == id && prod.Quantity >= amount);
 
                 if (foundProduct is null)
                 {
@@ -279,198 +183,31 @@ public class VendingMachine
     public void ViewCashDesk()
     {
         Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
-        foreach (var entry in CashDesk)
-        {
-            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
-        }
+        cashDesk.View();
     }
 
     public void ProductsView()
     {
-        Console.WriteLine("\nhere is the list of ALL products (in stock and out of stock):\n");
-        if (AvailableProducts.Count == 0)
-        {
-            Console.WriteLine("there are NO products ADDED YET, nothing to show.");
-        }
-        foreach (Product prod in AvailableProducts)
-        {
-            Console.WriteLine($"{prod.AdminInfoOutput()}");
-        }
+        foodWarehouse.ViewProducts("admin");
     }
 
     public void StoreWindow()
     {
-        Console.WriteLine("\nhere is the list of available products:\n");
-
-        foreach (Product prod in AvailableProducts)
-        {
-            if (prod.ConsumerInfoOutput() is not null)
-            {
-                Console.WriteLine($"{prod.ConsumerInfoOutput()}");
-            }
-        }
+        foodWarehouse.ViewProducts("user");
     }
 
     // admin interaction methods
-    public void AddNewPositions()
-    {
-        Console.WriteLine("\nhow many product types do you want to add? enter an integer value.");
-        string? products_temp = Console.ReadLine();
-
-        int prod_num;
-
-        while (!int.TryParse(products_temp, out prod_num) || prod_num <= 0)
-        {
-            Console.WriteLine("\nyou must enter a positive integer value");
-            products_temp = Console.ReadLine();
-        }
-
-        for (int i = 0; i < prod_num; i++)
-        {
-            Console.WriteLine("\nenter product id (POSITIVE int), product name (string), product price (POSITIVE int) and product quantity (POSITIVE int), separate with comma.\nFORMAT EXAMPLE: 1, water 'saint spring', 50, 100.");
-            string? input_prod = Console.ReadLine();
-
-            if (string.IsNullOrEmpty(input_prod) || string.IsNullOrWhiteSpace(input_prod))
-            {
-                Console.WriteLine("\nenter product data in a correct way");
-                i--;
-                continue;
-            }
-
-            var parts = input_prod.Split(",");
-
-            if (parts.Length != 4)
-            {
-                Console.WriteLine("\nenter product data in a correct way");
-                i--;
-                continue;
-            }
-
-            string name = parts[1].Trim();
-
-            if (!int.TryParse(parts[0].Trim(), out int id) || id <= 0 || !int.TryParse(parts[2].Trim(), out int price) || price <= 0 || !int.TryParse(parts[3].Trim(), out int quantity) || quantity <= 0)
-            {
-                Console.WriteLine("\nenter product data in a correct way");
-                i--;
-                continue;
-            }
-
-            if (!IdSet.Contains(id) && !NamingSet.Contains(name))
-            {
-                Product product_exemp = new(id, name, price, quantity);
-                AvailableProducts.Add(product_exemp);
-                IdSet.Add(id);
-                NamingSet.Add(name);
-                Console.WriteLine($"\nyou added a new product: {product_exemp.AdminInfoOutput()}");
-            }
-            else if (!IdSet.Contains(id) && NamingSet.Contains(name))
-            {
-                Console.WriteLine($"\nproduct with name '{name}' already exists. change the parameters and try again.");
-                i--;
-                continue;
-            }
-            else if (IdSet.Contains(id) && !NamingSet.Contains(name))
-            {
-                Console.WriteLine($"\nproduct with id {id} already exists. change the parameters and try again.");
-                i--;
-                continue;
-            }
-            else if (IdSet.Contains(id) && NamingSet.Contains(name))
-            {
-                Product existingProductId = AvailableProducts.First(product => product.Id == id); // since the product is already in the AvailableProducts, id in IdSet
-                Product existingProductName = AvailableProducts.First(product => product.Name == name);
-                if (existingProductId == existingProductName)
-                {
-                    Console.WriteLine($"\nproduct {name} (id {id}) already exists: {existingProductId.AdminInfoOutput()}. change the parameters and try again.");
-                    i--;
-                    continue;
-                }
-                else
-                {
-                    Console.WriteLine($"\nTHERE ARE TWO DIFFERENT PRODUCTS\nid {id} already exists: {existingProductId.AdminInfoOutput()}.\nproduct {name} already exists: {existingProductName.AdminInfoOutput()}.\nchange the parameters and try again.");
-                    i--;
-                    continue;
-                }
-            }
-        }
-    }
-
-    public void RefillProducts()
-    {
-        Console.WriteLine("\nhow many different types of products do you want to refill? enter an integer value.");
-        string? str_types = Console.ReadLine();
-
-        int types_num;
-
-        while (!int.TryParse(str_types, out types_num) || types_num <= 0)
-        {
-            Console.WriteLine("\ntypes number must be a positive integer. try again");
-            str_types = Console.ReadLine();
-        }
-
-        for (int i = 0; i < types_num; i++)
-        {
-            Console.WriteLine("\nenter product id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount}\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces)");
-            string? prod_data = Console.ReadLine();
-
-            bool success = false;
-
-            while (!success)
-            {
-                if (string.IsNullOrEmpty(prod_data) || string.IsNullOrWhiteSpace(prod_data))
-                {
-                    Console.WriteLine("\nenter product data in a correct way");
-                    i--;
-                    continue;
-                }
-
-                var parts = prod_data.Split(",");
-                if (parts.Length != 2)
-                {
-                    Console.WriteLine("\nwrong format. use: ProductId, ProductAmount.\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces). try again:");
-                    i--;
-                    continue;
-                }
-
-                if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int quantity) || quantity <= 0)
-                {
-                    Console.WriteLine("\nwrong format. id must exist and amount must be positive. try again");
-                    i--;
-                    continue;
-                }
-
-                Product? foundProduct = AvailableProducts.FirstOrDefault(product => product.Id == id);
-
-                if (foundProduct is null)
-                {
-                    Console.WriteLine($"\nthere is no product with id {id}. try entering the data again");
-                    i--;
-                    continue;
-                }
-
-                foundProduct.Quantity += quantity;
-                Console.WriteLine($"\nyou refilled {foundProduct.Name} (id {foundProduct.Id}) by {quantity} pieces. now the amount is {foundProduct.Quantity}");
-                success = true;
-            }
-        }
-    }
-
     public void RefillAddProducts()
     {
-        if (AvailableProducts.Count == 0)
+        if (!foodWarehouse.HasAvailableProducts())
         {
             Console.WriteLine("\nthere are no products added yet.");
-            AddNewPositions();
+            foodWarehouse.AddProducts();
         }
         else
         {
             Console.WriteLine("\nhere are the list of available products:\n");
-            foreach (Product product in AvailableProducts.Cast<Product>())
-            {
-                string? info = product.AdminInfoOutput();
-                if (info is not null)
-                    Console.WriteLine(info);
-            }
+            foodWarehouse.ViewProducts("admin");
             Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product\n3. exit to main menu");
 
             string? option;
@@ -491,7 +228,7 @@ public class VendingMachine
                 case "refill":
                 case "1":
                     Console.WriteLine("\nrefilling products....");
-                    RefillProducts();
+                    foodWarehouse.RefillProducts();
                     return;
 
                 case "2. add new product":
@@ -501,7 +238,7 @@ public class VendingMachine
                 case "add":
                 case "2":
                     Console.WriteLine("\nadding new products....");
-                    AddNewPositions();
+                    foodWarehouse.AddProducts();
                     return;
 
                 case "3. exit to main menu":
@@ -521,27 +258,13 @@ public class VendingMachine
 
     public void CollectMoney()
     {
-        int summa = 0;
-
-        foreach (var entry in CashDesk)
-        {
-            summa += entry.Face * entry.Amount;
-            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
-        }
-
-        Console.WriteLine($"\n{summa} RUB collected");
-
-        foreach (Coin coin in CashDesk)
-        {
-            coin.Amount = 0;
-        }
-
-        Console.WriteLine("\ncash desk is empty now");
+        cashDesk.View();
+        Console.WriteLine($"\n{cashDesk.TotalAmount} RUB collected");
+        cashDesk.Clear();
     }
 
     public void FillCashDesk()
     {
-
         while(true)
         {
             Console.WriteLine("\nenter the amount of the face you want to add (positive integer)\nif you filled the cash desk, enter 'DONE'\n\nFORMAT EXAMPLE: 10, 5 (i.e. 10 RUB-coins/banknotes x 5 pieces)\n");
@@ -568,38 +291,25 @@ public class VendingMachine
                 Console.WriteLine($"\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
                 continue;
             }
-
-            Coin? existingCoin = CashDesk.FirstOrDefault(coin => coin.Face == face);
-
-            if (existingCoin != null)
-            {
-                existingCoin.Amount += pieces;
-            }
-            else
-            {
-                CashDesk.Add(new Coin(face, pieces));
-            }
+            cashDesk.AddCoin(face, pieces);
         }
 
         Console.WriteLine("\n\ncash desk has been successfully filled. current content:");
-        foreach (Coin entry in CashDesk)
-        {
-            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
-        }
+        cashDesk.View();
     }
 
     // checking
     public bool ChangeRoleCheck()
     {
-        if (AvailableProducts.Count == 0 || CheckDesk())
+        if (!foodWarehouse.HasAvailableProducts() || cashDesk.IsEmpty())
         {
-            if (AvailableProducts.Count == 0 && !CheckDesk())
+            if (!foodWarehouse.HasAvailableProducts() && !cashDesk.IsEmpty())
             {
                 Console.WriteLine("\nthere are no products added yet.\nyou need to add products before changing the role.");
-                AddNewPositions();
+                foodWarehouse.AddProducts();
                 return false;
             }
-            else if (AvailableProducts.Count != 0 && CheckDesk())
+            else if (foodWarehouse.HasAvailableProducts() && cashDesk.IsEmpty())
             {
                 Console.WriteLine("\nthe cash desk is empty, there is no money to give change from.\nyou need to fill the cash desk before changing the role.");
                 FillCashDesk();
@@ -608,7 +318,7 @@ public class VendingMachine
             else
             {
                 Console.WriteLine("\nno products & money yet. cannot change the role.");
-                AddNewPositions();
+                foodWarehouse.AddProducts();
                 FillCashDesk();
                 return false;
             }
@@ -618,13 +328,22 @@ public class VendingMachine
 
     public bool CheckDesk()
     {
-        return CashDesk.All(a => a.Amount == 0) || CashDesk.Count == 0;
+        if (cashDesk.IsEmpty())
+        {
+            Console.WriteLine("\nthe cash desk is empty.");
+            return true;
+        }
+        else
+        {
+            Console.WriteLine($"\nthe cash desk is NOT EMPTY, it contains {cashDesk.TotalAmount} RUB");
+            return false;
+        }
     }
 
     // scenarios
     public void UserScenario(User consumer) // only User can be in UserScenario, no IRoles then
     {
-        if (AvailableProducts.All(prod => !prod.InStock))
+        if (!foodWarehouse.HasAvailableProducts())
         {
             Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
             Console.WriteLine("\nwant to change the role? (yes/no&exit)");
@@ -709,21 +428,9 @@ public class VendingMachine
         if (FilledMachine())
         {
             // filling the cash desk with random amount of random coins/banknotes
-            Random rand = new();
-            foreach (int face in FacesSet)
-            {
-                int pieces = rand.Next(0, 11); // from 1 to 10 pieces of each face
-                CashDesk.Add(new Coin(face, pieces));
-            }
-
+            cashDesk.Fill();
             // adding some products
-            AvailableProducts.Add(new Product(1, "water 'saint spring'", 50, 100));
-            AvailableProducts.Add(new Product(2, "greek salad", 100, 50));
-            AvailableProducts.Add(new Product(3, "chiken karri sandwich", 120, 50));
-            AvailableProducts.Add(new Product(4, "pancackes with marple syrup", 120, 100));
-            AvailableProducts.Add(new Product(5, "nut&dried fruits mix", 100, 100));
-            IdSet.UnionWith([1, 2, 3, 4, 5]);
-            NamingSet.UnionWith(["water 'saint spring'", "greek salad", "chiken karri sandwich", "pancackes with marple syrup", "nut&dried fruits mix"]);
+            foodWarehouse.FillProducts([new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with marple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100)]);
 
             Console.WriteLine("\nchoose your role: user or admin");
             string? role = Console.ReadLine();

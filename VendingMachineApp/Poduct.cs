@@ -49,7 +49,7 @@ public class Product
         return $"{Name} (id {Id}): price {Price} RUB - OUT OF STOCK";
     }
 
-    public string? ConsumerInfoOutput()
+    public string? UserInfoOutput()
     {
         if (InStock)
             return $"{Name} (id {Id}): price {Price} RUB, in stock {Quantity}";
