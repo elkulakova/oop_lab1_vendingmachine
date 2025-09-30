@@ -1,13 +1,11 @@
 namespace VendingMachineApp;
 public class VendingMachine
 {
-    public List<Product> AvailableProducts = []; // filled by Admin
-
-    public HashSet<int> IdSet = []; // filled automatically
-
-    public HashSet<string> NamingSet = []; // filled automatically
-
-    public Dictionary<int, int> CashDesk = Coin.Faces.ToDictionary(k => k, k => 0); // filled automatically
+    private bool isRunning = true;
+    private readonly List<Product> AvailableProducts = []; // filled by Admin
+    private readonly HashSet<int> IdSet = []; // filled automatically
+    private readonly HashSet<string> NamingSet = []; // filled automatically
+    private readonly Dictionary<int, int> CashDesk = Coin.Faces.ToDictionary(k => k, k => 0); // filled automatically
 
     public VendingMachine()
     {
@@ -489,7 +487,7 @@ public class VendingMachine
         foreach (var entry in cashDesk)
         {
             summa += entry.Key * entry.Value;
-            Console.WriteLine($"\n{entry.Key}-coin/banknotes x {entry.Value} pieces");
+            Console.WriteLine($"{entry.Key}-coin/banknotes x {entry.Value} pieces");
         }
 
         Console.WriteLine($"\n{summa} RUB collected");
@@ -544,15 +542,15 @@ public class VendingMachine
     // checking
     public bool ChangeRoleCheck()
     {
-        if (AvailableProducts.Count == 0 || CashDesk.Values.All(v => v == 0))
+        if (AvailableProducts.Count == 0 || CheckDesk())
         {
-            if (AvailableProducts.Count == 0 && !CashDesk.Values.All(v => v == 0))
+            if (AvailableProducts.Count == 0 && !CheckDesk())
             {
                 Console.WriteLine("\nthere are no products added yet.\nyou need to add products before changing the role.");
                 AddNewPositions();
                 return false;
             }
-            else if (AvailableProducts.Count != 0 && CashDesk.Values.All(v => v == 0))
+            else if (AvailableProducts.Count != 0 && CheckDesk())
             {
                 Console.WriteLine("\nthe cash desk is empty, there is no money to give change from.\nyou need to fill the cash desk before changing the role.");
                 FillCashDesk();
@@ -574,9 +572,8 @@ public class VendingMachine
         return CashDesk.Values.All(v => v == 0);
     }
 
-
     // scenarios
-    public void UserScenario(User consumer)
+    public void UserScenario(User consumer) // only User can be in UserScenario, no IRoles then
     {
         if (AvailableProducts.All(prod => !prod.InStock))
         {
@@ -602,7 +599,6 @@ public class VendingMachine
                 case "no":
                 case "n":
                 case "2":
-                    Console.WriteLine("\ngoodbye!");
                     ShutDown();
                     return;
 
@@ -659,6 +655,8 @@ public class VendingMachine
     }
     public void MachineStart()
     {
+        isRunning = true;
+
         if (FilledMachine())
         {
             // filling the cash desk with random amount of random coins/banknotes
@@ -714,8 +712,13 @@ public class VendingMachine
         }
     }
 
-    public static void ShutDown()
+    public void ShutDown()
     {
+        if (!isRunning) // in order not to be able to shut the machine down in the main script without starting it first
+            throw new InvalidOperationException("machine is not running. cannot shut down.");
+
+        isRunning = false;
+        Console.WriteLine("\nshutting down the vending machine...\ngoodbye!");
         Environment.Exit(0);
     }
 }

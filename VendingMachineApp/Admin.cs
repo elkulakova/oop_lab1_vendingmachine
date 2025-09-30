@@ -1,9 +1,7 @@
-using System.ComponentModel;
-
 namespace VendingMachineApp;
-public class Admin(VendingMachine vendingMachine) // primary constructor, vendingMachine is already readonly field
+public class Admin(VendingMachine vendingMachine) : Role(vendingMachine) // primary constructor, vendingMachine is already readonly field
 {
-    public void ChooseTask()
+    public override void ChooseTask()
     {
         Console.WriteLine("\nchoose the option you want to do:\n1. see products list\n2. refill products;\n3. collect the recieved money;\n4. view the content of the cash desk;\n5. fill the cash desk;\n6. change the role;\n7. exit program.");
         string? option = Console.ReadLine();
@@ -88,8 +86,7 @@ public class Admin(VendingMachine vendingMachine) // primary constructor, vendin
             case "exit program":
             case "exit":
             case "7":
-                Console.WriteLine("\nexiting program....");
-                VendingMachine.ShutDown();
+                vendingMachine.ShutDown();
                 return;
 
             default:

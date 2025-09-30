@@ -1,7 +1,7 @@
 namespace VendingMachineApp;
-public class User (VendingMachine vendingMachine)
+public class User(VendingMachine vendingMachine) : Role(vendingMachine) // primary constructor, vendingMachine is already readonly field
 {
-    public void ChooseTask()
+    public override void ChooseTask()
     {
         Console.WriteLine("\nchoose an option to do:\n1. see available products\n2. buy something\n3. change the role\n4. exit program");
         string? answer = Console.ReadLine();
@@ -46,8 +46,7 @@ public class User (VendingMachine vendingMachine)
             case "exit program":
             case "exit":
             case "4":
-                Console.WriteLine("\ngoodbye!");
-                VendingMachine.ShutDown();
+                vendingMachine.ShutDown();
                 return;
 
             default:
