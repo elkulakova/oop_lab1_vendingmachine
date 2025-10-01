@@ -182,7 +182,6 @@ public class VendingMachine
     // see smth methods
     public void ViewCashDesk()
     {
-        Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
         cashDesk.View();
     }
 
@@ -382,13 +381,16 @@ public class VendingMachine
     public void AdminScenario()
     {
         Console.WriteLine("\nenter admin password below");
-        string? password = Console.ReadLine();
 
-        if (string.IsNullOrEmpty(password) || string.IsNullOrWhiteSpace(password))
+        string? password;
+        do
         {
-            Console.WriteLine("\nadmin password cannot be empty.");
-            return;
-        }
+            password = Console.ReadLine();
+            if (string.IsNullOrEmpty(password) || string.IsNullOrWhiteSpace(password))
+            {
+                Console.WriteLine("\nadmin password cannot be empty.");
+            }
+        } while (string.IsNullOrEmpty(password) || string.IsNullOrWhiteSpace(password));
 
         if (password.ToLower().Trim() == "admin_password")
         {
@@ -464,7 +466,6 @@ public class VendingMachine
         {
             Console.WriteLine("\nthere are no products added yet. you need to login as an admin to add new products.");
             AdminScenario();
-            return;
         }
     }
 

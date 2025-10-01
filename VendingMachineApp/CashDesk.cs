@@ -13,10 +13,17 @@ public class CashDesk
     }
     public void View()
     {
-        //Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
-        foreach (Coin entry in CoinsSet)
+        if (!IsEmpty())
         {
-            Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
+            Console.WriteLine("\nhere is the CONTENT of the cash desk:\n");
+            foreach (Coin entry in CoinsSet)
+            {
+                Console.WriteLine($"{entry.Face}-coin/banknotes x {entry.Amount} pieces");
+            }
+        }
+        else
+        {
+            Console.WriteLine("\nthe cash desk is EMPTY, nothing to show.");
         }
     }
     public int TotalAmount
@@ -33,19 +40,22 @@ public class CashDesk
     }
     public void AddCoin(int face, int amount)
     {
-        if (amount <= 0)
-            throw new ArgumentException("amount of coins to add cannot be equal or less than 0!");
+        if (amount < 0)
+            throw new ArgumentException("amount of coins to add cannot be less than 0!");
         if (!FacesSet.Contains(face))
             throw new ArgumentException("this face is not accepted by the vending machine!");
 
-        Coin? foundCoin = CoinsSet.FirstOrDefault(coin => coin.Face == face);
-        if (foundCoin != null)
+        if (amount > 0)
         {
-            foundCoin.Amount += amount;
-        }
-        else
-        {
-            CoinsSet.Add(new Coin(face, amount));
+            Coin? foundCoin = CoinsSet.FirstOrDefault(coin => coin.Face == face);
+            if (foundCoin != null)
+            {
+                foundCoin.Amount += amount;
+            }
+            else
+            {
+                CoinsSet.Add(new Coin(face, amount));
+            }
         }
     }
     public void RemoveCoin(int face, int amount)
@@ -136,7 +146,7 @@ public class CashDesk
     {
         return CoinsSet.Count == 0 || TotalAmount == 0; // ~ CoinsSet.All(a => a.Amount == 0) || CoinsSet.Count == 0;
     }
-    public void Fill() // fill the cash desk with 10 coins/banknotes of each face
+    public void Fill() // fill the cash desk with random num of coins/banknotes of each face
     {
         Random rand = new();
         foreach (int face in FacesSet)
