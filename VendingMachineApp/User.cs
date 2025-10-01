@@ -1,22 +1,18 @@
 namespace VendingMachineApp;
-public class User // primary constructor, vendingMachine is already readonly field
+public class User(VendingMachine vendingMachine) : Role(vendingMachine) // primary constructor, vendingMachine is already readonly field
 {
-    public User(VendingMachine vendingMachine) : Role(vendingMachine)
-    {
-    }
-
     public override void ChooseTask()
     {
-        Console.WriteLine("\nchoose an option to do:\n1. see available products\n2. buy something\n3. change the role\n4. exit program");
         while (true)
         {
+            Console.WriteLine("\nchoose an option to do:\n1. see available products\n2. buy something\n3. change the role\n4. exit program");
             string? answer;
             do
             {
-                answer = Console.ReadLine()
+                answer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(answer))
                     Console.WriteLine("entered answer cannot be empty. try again");
-            } while (string.IsNullOrWhiteSpace(answer))
+            } while (string.IsNullOrWhiteSpace(answer));
 
             switch (answer.ToLower().Trim())
             {
@@ -27,8 +23,7 @@ public class User // primary constructor, vendingMachine is already readonly fie
                 case "see":
                 case "1":
                     vendingMachine.StoreWindow(); // no need to check if anythig in stock cause you can see the available products, and after seeing nothing changes
-                    ChooseTask();
-                    return;
+                    break;
 
                 case "2. buy something":
                 case "buy something":
@@ -36,7 +31,7 @@ public class User // primary constructor, vendingMachine is already readonly fie
                 case "2":
                     Console.WriteLine("be ready to empty your purse!");
                     vendingMachine.Purchase();
-                    vendingMachine.UserScenario(this); // nned to check if there are any products left after the purchase
+                    vendingMachine.UserScenario(this); // need to check if there are any products left after the purchase
                     return;
 
                 case "3. change the role":

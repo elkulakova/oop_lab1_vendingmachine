@@ -104,6 +104,10 @@ public class VendingMachine
         }
         else
         {
+            foreach (Coin coin in purchase_list.GetCoinsSet())
+            {
+                cashDesk.AddCoin(coin.Face, coin.Amount);
+            }
             Console.WriteLine("\nthank you for exact payment");
             Product foundProduct = foodWarehouse.GetProducts().First(prod => prod.Id == id); // no default, checked existance of id before payment
             foundProduct.Quantity -= amount;
@@ -329,7 +333,7 @@ public class VendingMachine
         if (!foodWarehouse.HasAvailableProducts())
         {
             Console.WriteLine("\nthere are no products added yet.");
-            foodWarehouse.AddProducts();
+            AddProducts();
         }
         else
         {
@@ -444,7 +448,7 @@ public class VendingMachine
             if (!foodWarehouse.HasAvailableProducts() && !cashDesk.IsEmpty())
             {
                 Console.WriteLine("\nthere are no products added yet.\nyou need to add products before changing the role.");
-                foodWarehouse.AddProducts();
+                AddProducts();
                 return false;
             }
             else if (foodWarehouse.HasAvailableProducts() && cashDesk.IsEmpty())
@@ -456,7 +460,7 @@ public class VendingMachine
             else
             {
                 Console.WriteLine("\nno products & money yet. cannot change the role.");
-                foodWarehouse.AddProducts();
+                AddProducts();
                 FillCashDesk();
                 return false;
             }
@@ -574,7 +578,7 @@ public class VendingMachine
             // filling the cash desk with random amount of random coins/banknotes
             cashDesk.Fill();
             // adding some products
-            foodWarehouse.FillProducts(new List<Product> {new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with marple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100)});
+            foodWarehouse.FillProducts(new List<Product> {new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with maple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100)});
 
             while (true)
             {

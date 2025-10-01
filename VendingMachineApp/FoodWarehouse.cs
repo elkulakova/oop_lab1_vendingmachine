@@ -16,7 +16,7 @@ public class FoodWarehouse
     {
         if (Products.Count == 0)
         {
-            Console.WriteLine("\nthere are no products in the vending machine yet.");
+            Console.WriteLine("\nthere are NO PRODUCTS in the vending machine yet, nothing to show.");
             return;
         }
 
@@ -34,10 +34,6 @@ public class FoodWarehouse
         else if (role.ToLower().Trim() == "admin")
         {
             Console.WriteLine("\nhere is the list of ALL products (in stock and out of stock):\n");
-            if (Products.Count == 0)
-            {
-                Console.WriteLine("there are NO products ADDED YET, nothing to show.");
-            }
             foreach (Product prod in Products)
             {
                 Console.WriteLine($"{prod.AdminInfoOutput()}");

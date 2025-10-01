@@ -2,8 +2,8 @@ namespace VendingMachineApp;
 public class CashDesk
 {
     //private List<Coin> _coins;
-    private HashSet<Coin> CoinsSet = []; // to save coins of different faces only once and then increase their amount
-    private static readonly HashSet<int> FacesSet = [1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000]; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
+    private HashSet<Coin> CoinsSet = new(); // to save coins of different faces only once and then increase their amount
+    private static readonly HashSet<int> FacesSet = new() { 1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000 }; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
     public CashDesk() // primary constructor, vendingMachine is already readonly field
     {
     }
@@ -72,7 +72,10 @@ public class CashDesk
         if (foundCoin != null)
         {
             if (foundCoin.Amount < amount)
+            {
                 Console.WriteLine("there are not enough coins of this face in the cash desk to remove the requested amount!");
+                return;
+            }
             foundCoin.Amount -= amount;
             if (foundCoin.Amount == 0)
                 CoinsSet.Remove(foundCoin);
