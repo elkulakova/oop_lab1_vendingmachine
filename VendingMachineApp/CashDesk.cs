@@ -2,7 +2,7 @@ namespace VendingMachineApp;
 public class CashDesk
 {
     //private List<Coin> _coins;
-    private HashSet<Coin> CoinsSet = []; // to check uniqueness of coin faces
+    private HashSet<Coin> CoinsSet = []; // to save coins of different faces only once and then increase their amount
     private static readonly HashSet<int> FacesSet = [1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000]; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
     public CashDesk() // primary constructor, vendingMachine is already readonly field
     {
@@ -38,45 +38,48 @@ public class CashDesk
             return total;
         }
     }
-    public void AddCoin(int face, int amount)
+    private void CorrectnessCheck(int face, int amount)
     {
-        if (amount < 0)
-            throw new ArgumentException("amount of coins to add cannot be less than 0!");
-        if (!FacesSet.Contains(face))
-            throw new ArgumentException("this face is not accepted by the vending machine!");
-
-        if (amount > 0)
+        if (amount <= 0 || !FacesSet.Contains(face))
         {
-            Coin? foundCoin = CoinsSet.FirstOrDefault(coin => coin.Face == face);
-            if (foundCoin != null)
-            {
-                foundCoin.Amount += amount;
-            }
+            if (amount > 0 && !FacesSet.Contains(face))
+                throw new ArgumentException("\nwrong input, coin face is not accepted by the vending machine.");
+            else if (amount <= 0 && FacesSet.Contains(face))
+                throw new ArgumentException("\nwrong input, amount of coins to add cannot be equal or less than 0, try again.");
             else
-            {
-                CoinsSet.Add(new Coin(face, amount));
-            }
+                throw new ArgumentException("\nwrong input, coin face is not accepted by the vending machine AND amount is non-positive, try again.");
         }
     }
-    public void RemoveCoin(int face, int amount)
+    public void AddCoin(int face, int amount)
     {
-        if (amount <= 0)
-            throw new ArgumentException("amount of coins to remove cannot be equal or less than 0!");
-        if (!FacesSet.Contains(face))
-            throw new ArgumentException("this face is not accepted by the vending machine!");
+        CorrectnessCheck(face, amount);
+
+        Coin? foundCoin = CoinsSet.FirstOrDefault(coin => coin.Face == face);
+        if (foundCoin != null)
+        {
+            foundCoin.Amount += amount;
+        }
+        else
+        {
+            CoinsSet.Add(new Coin(face, amount));
+        }
+    }
+    private void RemoveCoin(int face, int amount)
+    {
+        CorrectnessCheck(face, amount);
 
         Coin? foundCoin = CoinsSet.FirstOrDefault(coin => coin.Face == face);
         if (foundCoin != null)
         {
             if (foundCoin.Amount < amount)
-                throw new ArgumentException("there are not enough coins of this face in the cash desk to remove the requested amount!");
+                Console.WriteLine("there are not enough coins of this face in the cash desk to remove the requested amount!");
             foundCoin.Amount -= amount;
-            if (foundCoin.Amount == 0) // any profit???
+            if (foundCoin.Amount == 0)
                 CoinsSet.Remove(foundCoin);
         }
         else
         {
-            throw new ArgumentException("there are no coins of this face in the cash desk to remove!");
+            Console.WriteLine("\nthere are no coins of this face in the cash desk to remove!");
         }
     }
     public string GiveChange(int change, HashSet<Coin> money_list)
@@ -152,6 +155,8 @@ public class CashDesk
         foreach (int face in FacesSet)
         {
             int num = rand.Next(0, 11);
+            if (num == 0)
+                continue;
             AddCoin(face, num);
         }
     }

@@ -6,7 +6,7 @@ public class VendingMachine
 {
     private bool isRunning = true;
     private readonly FoodWarehouse foodWarehouse = new();
-    private static readonly HashSet<int> FacesSet = [1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000]; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
+    private static readonly SortedSet<int> FacesSet = new() { 1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000 }; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
     private readonly CashDesk cashDesk = new(); // filled automatically or by Admin, so can be null when initializing the machine
 
     public VendingMachine()
@@ -36,17 +36,17 @@ public class VendingMachine
             Console.WriteLine($"\n\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
             string? num = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(num) || string.IsNullOrWhiteSpace(num))
+            if (string.IsNullOrWhiteSpace(num))
             {
                 Console.WriteLine("\ninvalid value. try again");
                 continue;
             }
 
-            else if (num.ToLower().Trim() == "pay" || num.ToLower().Trim() == "p" || num.ToLower().Trim() == "finish" || num.ToLower().Trim() == "f" || num.ToLower().Trim() == "done" || num.ToLower().Trim() == "d")
+            else if (num.ToLower().Trim() is "pay" or "p" or "finish" or "f" or "done" or "d")
             {
                 if (user_summa < purchase_sum)
                 {
-                    Console.WriteLine($"\nthe amount you have paid – {user_summa} RUB – is less than the purchase sum {purchase_sum} RUB. please, pay the remaining amount");
+                    Console.WriteLine($"\nthe amount you have paid ({user_summa} RUB) is less than the purchase sum {purchase_sum} RUB. please, pay the remaining amount");
                     continue;
                 }
                 else
@@ -54,26 +54,35 @@ public class VendingMachine
                     break;
                 }
             }
-            else if (num.ToLower().Trim() == "cancel" || num.ToLower().Trim() == "c" || num.ToLower().Trim() == "exit" || num.ToLower().Trim() == "quit" || num.ToLower().Trim() == "q" || num.ToLower().Trim() == "e")
+            else if (num.ToLower().Trim() is "cancel" or "c" or "exit" or "quit" or "q" or "e")
             {
                 RefundMoney(purchase_list);
                 return "cancelled";
             }
             else
             {
-                var parts = num.Split(",");
+                string[] parts = num.Split(',', StringSplitOptions.TrimEntries);
                 if (parts.Length != 2)
                 {
                     Console.WriteLine("\nwrong format. try again. FORMAT EXAMPLE: 10, 5.");
                     continue;
                 }
-                if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !FacesSet.Contains(face))
+                if (!int.TryParse(parts[0], out int face) || !int.TryParse(parts[1], out int pieces))
                 {
                     Console.WriteLine($"\nwrong format. try again. FORMAT EXAMPLE: 10, 5.\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
                     continue;
                 }
+
+                try
+                {
+                    purchase_list.AddCoin(face, pieces);
+                }
+                catch (ArgumentException ex)
+                {
+                    Console.WriteLine($"\nerror occurred: {ex.Message}\ntry again.");
+                    continue;
+                }
                 user_summa += face * pieces;
-                purchase_list.AddCoin(face, pieces);
             }
         }
         if (user_summa > purchase_sum)
@@ -126,34 +135,36 @@ public class VendingMachine
 
             Console.WriteLine($"\navailable products ids: {string.Join(", ", availableIds.OrderBy(id => id))}");
             Console.WriteLine("\nenter product id and the amount you want to buy.\nFORMAT EXAMPLE: 10, 3 (id 10, pieces 3)\nif you want to exit purchasing, enter 'CANCEL'");
-            string? desire = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(desire) || string.IsNullOrWhiteSpace(desire))
+            string? desire;
+            do
             {
-                Console.WriteLine("wrong format. try again. FORMAT EXAMPLE: 123, 5.");
                 desire = Console.ReadLine();
-            }
+                if (string.IsNullOrWhiteSpace(desire))
+                {
+                    Console.WriteLine("entered value cannot be empty. try again. FORMAT EXAMPLE: 123, 5.");
+                }
+            } while (string.IsNullOrWhiteSpace(desire));
 
-            else if (desire.ToLower().Trim() == "exit" || desire.ToLower().Trim() == "quit" || desire.ToLower().Trim() == "q" || desire.ToLower().Trim() == "e" || desire.ToLower().Trim() == "cancel" || desire.ToLower().Trim() == "c")
+            if (desire.ToLower().Trim() is "exit" or "quit" or "q" or "e" or "cancel" or "c")
             {
                 Console.WriteLine("exiting purchasing....");
                 return;
             }
             else
             {
-                var parts = desire.Split(",");
+                string[] parts = desire.Split(',', StringSplitOptions.TrimEntries);
                 if (parts.Length != 2)
                 {
                     Console.WriteLine("wrong format. try again. FORMAT EXAMPLE: 123, 5.");
                     continue;
                 }
 
-                if (!int.TryParse(parts[0].Trim(), out int id) || !int.TryParse(parts[1].Trim(), out int amount) || amount <= 0)
+                if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[1], out int amount) || amount <= 0)
                 {
                     Console.WriteLine("wrong format. try again. FORMAT EXAMPLE: 123, 5.");
                     continue;
                 }
-
 
                 Product? foundProduct = foodWarehouse.GetProducts().FirstOrDefault(prod => prod.Id == id && prod.Quantity >= amount);
 
@@ -166,12 +177,12 @@ public class VendingMachine
                 int prod_price = foundProduct.Price;
                 Console.WriteLine($"your PURCHASE: {foundProduct.Name} (id {foundProduct.Id}), price {foundProduct.Price} RUB, amount - {amount} piece(s).");
                 var res = Payment(id, prod_price, amount);
-                if (res == "refund" || res == "cancelled")
+                if (res is "refund" or "cancelled")
                 {
                     Console.WriteLine("let's try again!");
                     continue;
                 }
-                if (res == "success")
+                if (res is "success")
                 {
                     return;
                 }
@@ -196,6 +207,123 @@ public class VendingMachine
     }
 
     // admin interaction methods
+    public void AddProducts()
+    {
+        Console.WriteLine("\nhow many products types do you want to add? enter an integer value.");
+
+        int prod_num;
+        string? products_temp;
+        do
+        {
+            products_temp = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(products_temp) && int.TryParse(products_temp, out prod_num) && prod_num > 0)
+            {
+                break;
+            }
+            Console.WriteLine("\nyou must enter a positive integer value");
+        } while (true);
+
+        for (int i = 0; i < prod_num; i++)
+        {
+            Console.WriteLine("\nenter product id (POSITIVE int), product name (string), product price (POSITIVE int) and product quantity (POSITIVE int), separate with comma.\nFORMAT EXAMPLE: 1, water 'saint spring', 50, 100.");
+            string? input_prod = Console.ReadLine();
+
+            bool success = false;
+
+            while (!success)
+            {
+                if (string.IsNullOrWhiteSpace(input_prod))
+                {
+                    Console.WriteLine("\nenter product data in a correct way");
+                    continue;
+                }
+
+                string[] parts = input_prod.Split(',', StringSplitOptions.TrimEntries);
+
+                if (parts.Length != 4)
+                {
+                    Console.WriteLine("\nenter product data in a correct way");
+                    continue;
+                }
+
+                string name = parts[1];
+
+                if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[2], out int price) || !int.TryParse(parts[3], out int quantity))
+                {
+                    Console.WriteLine("\nenter product data in a correct way");
+                    continue;
+                }
+
+                try
+                {
+                    foodWarehouse.AddProduct(id, name, price, quantity);
+                }
+                catch (ArgumentException ex)
+                {
+                    Console.WriteLine($"\nerror occurred: {ex.Message}\ntry again.");
+                    continue;
+                }
+                success = true;
+            }
+        }
+    }
+    public void RefillProducts()
+    {
+        Console.WriteLine("\nhow many different types of products do you want to refill? enter an integer value.");
+
+        string? str_types;
+        int types_num;
+        do
+        {
+            str_types = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(str_types) && int.TryParse(str_types, out types_num) && types_num > 0)
+            {
+                break;
+            }
+            Console.WriteLine("\ntypes number must be a positive integer. try again");
+        } while (true);
+
+        for (int i = 0; i < types_num; i++)
+        {
+            Console.WriteLine("\nenter product id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount}\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces)");
+            string? prod_data = Console.ReadLine();
+
+            bool success = false;
+
+            while (!success)
+            {
+                if (string.IsNullOrWhiteSpace(prod_data))
+                {
+                    Console.WriteLine("\nenter product data in a correct way");
+                    continue;
+                }
+
+                string[] parts = prod_data.Split(',', StringSplitOptions.TrimEntries);
+                if (parts.Length != 2)
+                {
+                    Console.WriteLine("\nwrong format. use: ProductId, ProductAmount.\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces). try again:");
+                    continue;
+                }
+
+                if (!int.TryParse(parts[0], out int id) || !int.TryParse(parts[1], out int quantity))
+                {
+                    Console.WriteLine("\nwrong format. id must exist and amount must be positive. try again");
+                    continue;
+                }
+
+                try
+                {
+                    foodWarehouse.RefillProduct(id, quantity);
+                }
+                catch (ArgumentException ex)
+                {
+                    Console.WriteLine($"\nerror occurred: {ex.Message}\ntry again.");
+                    continue;
+                }
+                success = true;
+            }
+        }
+    }
     public void RefillAddProducts()
     {
         if (!foodWarehouse.HasAvailableProducts())
@@ -205,52 +333,54 @@ public class VendingMachine
         }
         else
         {
-            Console.WriteLine("\nhere are the list of available products:\n");
-            foodWarehouse.ViewProducts("admin");
-            Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product\n3. exit to main menu");
-
-            string? option;
-            do
+            while (true)
             {
-                option = Console.ReadLine();
-                if (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option))
+                Console.WriteLine("\nhere are the list of available products:\n");
+                foodWarehouse.ViewProducts("admin");
+                Console.WriteLine("\nchoose an option to do:\n1. refill existing products\n2. add new product\n3. exit to main menu");
+
+                string? option;
+                do
                 {
-                    Console.WriteLine("\nchoose the task to do, input cannot be empty.");
+                    option = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(option))
+                    {
+                        Console.WriteLine("\nchoose the task to do, input cannot be empty.");
+                    }
+                } while (string.IsNullOrWhiteSpace(option));
+
+                switch (option.ToLower().Trim())
+                {
+                    case "1. refill existing products":
+                    case "refill existing products":
+                    case "refill products":
+                    case "refill":
+                    case "1":
+                        Console.WriteLine("\nrefilling products....");
+                        RefillProducts();
+                        return;
+
+                    case "2. add new product":
+                    case "add new product":
+                    case "add product":
+                    case "add new":
+                    case "add":
+                    case "2":
+                        Console.WriteLine("\nadding new products....");
+                        AddProducts();
+                        return;
+
+                    case "3. exit to main menu":
+                    case "exit to main menu":
+                    case "exit":
+                    case "3":
+                        Console.WriteLine("\nexiting to main menu....");
+                        return;
+
+                    default:
+                        Console.WriteLine("\ninvalid option. please choose 1 or 2.");
+                        break;
                 }
-            } while (string.IsNullOrEmpty(option) || string.IsNullOrWhiteSpace(option));
-
-            switch (option.ToLower().Trim())
-            {
-                case "1. refill existing products":
-                case "refill existing products":
-                case "refill products":
-                case "refill":
-                case "1":
-                    Console.WriteLine("\nrefilling products....");
-                    foodWarehouse.RefillProducts();
-                    return;
-
-                case "2. add new product":
-                case "add new product":
-                case "add product":
-                case "add new":
-                case "add":
-                case "2":
-                    Console.WriteLine("\nadding new products....");
-                    foodWarehouse.AddProducts();
-                    return;
-
-                case "3. exit to main menu":
-                case "exit to main menu":
-                case "exit":
-                case "3":
-                    Console.WriteLine("\nexiting to main menu....");
-                    return;
-
-                default:
-                    Console.WriteLine("\ninvalid option. please choose 1 or 2.");
-                    RefillAddProducts();
-                    return;
             }
         }
     }
@@ -270,27 +400,36 @@ public class VendingMachine
             Console.WriteLine($"\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
             string? val = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val))
+            if (string.IsNullOrWhiteSpace(val))
             {
                 Console.WriteLine("\ninvalid value. try again");
                 continue;
             }
 
-            else if (val.ToLower().Trim() == "done" || val.ToLower().Trim() == "finish" || val.ToLower().Trim() == "f" || val.ToLower().Trim() == "d") break;
+            else if (val.ToLower().Trim() is "done" or "finish" or "f" or "d") break;
 
-            var parts = val.Split(",");
+            string[] parts = val.Split(',', StringSplitOptions.TrimEntries);
             if (parts.Length != 2)
             {
                 Console.WriteLine("\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (10 RUB-coin, 5 pieces).");
                 continue;
             }
 
-            if (!int.TryParse(parts[0].Trim(), out int face) || !int.TryParse(parts[1].Trim(), out int pieces) || pieces < 0 || !FacesSet.Contains(face))
+            if (!int.TryParse(parts[0], out int face) || !int.TryParse(parts[1], out int pieces))
             {
                 Console.WriteLine($"\nWRONG FORMAT. try again.\nFORMAT EXAMPLE: 10, 5 (positive integers, valid faces; 10 RUB-coin, 5 pieces).\navailable faces: {string.Join(", ", FacesSet.OrderBy(f => f))} RUB");
                 continue;
             }
-            cashDesk.AddCoin(face, pieces);
+
+            try
+            {
+                cashDesk.AddCoin(face, pieces);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"\nerror occurred: {ex.Message}\ntry again.");
+                continue;
+            }
         }
 
         Console.WriteLine("\n\ncash desk has been successfully filled. current content:");
@@ -346,33 +485,36 @@ public class VendingMachine
         {
             Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
             Console.WriteLine("\nwant to change the role? (yes/no&exit)");
-            string? ans = Console.ReadLine();
-
-            while (string.IsNullOrEmpty(ans) || string.IsNullOrWhiteSpace(ans))
+            while (true)
             {
-                Console.WriteLine("entered answer cannot be empty. try again");
-                ans = Console.ReadLine();
-            }
-            switch (ans.ToLower().Trim())
-            {
-                case "yes":
-                case "y":
-                case "1":
-                    Console.WriteLine("\nchanging role to admin....");
-                    AdminScenario();
-                    return;
+                string? ans = Console.ReadLine();
 
-                case "no&exit":
-                case "no":
-                case "n":
-                case "2":
-                    ShutDown();
-                    return;
+                if (string.IsNullOrWhiteSpace(ans))
+                {
+                    Console.WriteLine("entered answer cannot be empty. try again");
+                    continue;
+                }
 
-                default:
-                    Console.WriteLine("wrong input. try again");
-                    UserScenario(consumer);
-                    return;
+                switch (ans.ToLower().Trim())
+                {
+                    case "yes":
+                    case "y":
+                    case "1":
+                        Console.WriteLine("\nchanging role to admin....");
+                        AdminScenario();
+                        return;
+
+                    case "no&exit":
+                    case "no":
+                    case "n":
+                    case "2":
+                        ShutDown();
+                        return;
+
+                    default:
+                        Console.WriteLine("wrong input. try again");
+                        break;
+                }
             }
         }
         consumer.ChooseTask();
@@ -386,13 +528,13 @@ public class VendingMachine
         do
         {
             password = Console.ReadLine();
-            if (string.IsNullOrEmpty(password) || string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(password))
             {
                 Console.WriteLine("\nadmin password cannot be empty.");
             }
-        } while (string.IsNullOrEmpty(password) || string.IsNullOrWhiteSpace(password));
+        } while (string.IsNullOrWhiteSpace(password));
 
-        if (password.ToLower().Trim() == "admin_password")
+        if (password.ToLower().Trim() is "admin_password")
         {
             try
             {
@@ -432,34 +574,39 @@ public class VendingMachine
             // filling the cash desk with random amount of random coins/banknotes
             cashDesk.Fill();
             // adding some products
-            foodWarehouse.FillProducts([new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with marple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100)]);
+            foodWarehouse.FillProducts(new List<Product> {new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with marple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100)});
 
-            Console.WriteLine("\nchoose your role: user or admin");
-            string? role = Console.ReadLine();
-
-            while (string.IsNullOrEmpty(role) || string.IsNullOrWhiteSpace(role))
+            while (true)
             {
-                Console.WriteLine("\nentered role cannot be empty. try again");
-                role = Console.ReadLine();
-            }
+                Console.WriteLine("\nchoose your role: user or admin");
 
-            switch (role.ToLower().Trim())
-            {
-                case "user":
-                case "1":
-                    User user = new(this);
-                    UserScenario(user);
-                    return;
+                string? role;
+                do
+                {
+                    role = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(role))
+                    {
+                        Console.WriteLine("\nentered role cannot be empty. try again");
+                    }
+                } while (string.IsNullOrWhiteSpace(role));
 
-                case "admin":
-                case "2":
-                    AdminScenario();
-                    return;
+                switch (role.ToLower().Trim())
+                {
+                    case "user":
+                    case "1":
+                        User user = new(this);
+                        UserScenario(user);
+                        return;
 
-                default:
-                    Console.WriteLine("\nwrong role. try again");
-                    MachineStart();
-                    return;
+                    case "admin":
+                    case "2":
+                        AdminScenario();
+                        return;
+
+                    default:
+                        Console.WriteLine("\nwrong role. try again");
+                        break;
+                }
             }
         }
         else
