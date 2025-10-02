@@ -2,9 +2,9 @@ namespace VendingMachineApp;
 
 public class FoodWarehouse
 {
-    private List<Product> Products = new();
-    private readonly HashSet<int> IdSet = new(); // filled automatically
-    private readonly HashSet<string> NamingSet = new(); // filled automatically
+    private List<Product> Products = [];
+    private readonly HashSet<int> IdSet = []; // filled automatically
+    private readonly HashSet<string> NamingSet = []; // filled automatically
     public FoodWarehouse() // primary constructor, vendingMachine is already readonly field
     {
     }
@@ -98,7 +98,7 @@ public class FoodWarehouse
     }
     public HashSet<int> GetAvailableProductIds()
     {
-        return Products.Where(p => p.InStock).Select(p => p.Id).ToHashSet();
+        return [.. Products.Where(p => p.InStock).Select(p => p.Id)];
     }
     public void FillProducts(List<Product> products)
     {

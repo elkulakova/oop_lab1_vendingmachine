@@ -6,7 +6,7 @@ public class VendingMachine
 {
     private bool isRunning = true;
     private readonly FoodWarehouse foodWarehouse = new();
-    private static readonly SortedSet<int> FacesSet = new() { 1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000 }; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
+    private static readonly SortedSet<int> FacesSet = [1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000]; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
     private readonly CashDesk cashDesk = new(); // filled automatically or by Admin, so can be null when initializing the machine
 
     public VendingMachine()
@@ -579,7 +579,7 @@ public class VendingMachine
                 // filling the cash desk with random amount of random coins/banknotes
                 cashDesk.Fill();
                 // adding some products
-                foodWarehouse.FillProducts(new List<Product> { new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with maple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100) });
+                foodWarehouse.FillProducts([new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with maple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100)]);
 
                 while (true)
                 {
