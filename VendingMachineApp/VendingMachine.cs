@@ -174,7 +174,7 @@ public class VendingMachine
 
                 if (foundProduct is null)
                 {
-                    Console.WriteLine($"wrong id. choose one of the list {availableIds.OrderBy(i => i)} or the amount is more than in stock. try again.");
+                    Console.WriteLine($"wrong id or insufficient quantity. choose id one of the list {string.Join(", ", availableIds.OrderBy(id => id))}. try again.");
                     continue;
                 }
 
@@ -229,13 +229,13 @@ public class VendingMachine
 
         for (int i = 0; i < prod_num; i++)
         {
-            Console.WriteLine("\nenter product id (POSITIVE int), product name (string), product price (POSITIVE int) and product quantity (POSITIVE int), separate with comma.\nFORMAT EXAMPLE: 1, water 'saint spring', 50, 100.");
-            string? input_prod = Console.ReadLine();
-
             bool success = false;
 
             while (!success)
             {
+                Console.WriteLine("\nenter product id (POSITIVE int), product name (string), product price (POSITIVE int) and product quantity (POSITIVE int), separate with comma.\nFORMAT EXAMPLE: 1, water 'saint spring', 50, 100.");
+                string? input_prod = Console.ReadLine();
+
                 if (string.IsNullOrWhiteSpace(input_prod))
                 {
                     Console.WriteLine("\nenter product data in a correct way");
@@ -289,13 +289,12 @@ public class VendingMachine
 
         for (int i = 0; i < types_num; i++)
         {
-            Console.WriteLine("\nenter product id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount}\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces)");
-            string? prod_data = Console.ReadLine();
-
             bool success = false;
 
             while (!success)
             {
+                Console.WriteLine("\nenter product id and the amount of it you want to refill in the format of {ProductId}, {ProductAmount}\nFORMAT EXAMPLE: 56, 7 (id 56, 7 pieces)");
+                string? prod_data = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(prod_data))
                 {
                     Console.WriteLine("\nenter product data in a correct way");
@@ -487,10 +486,11 @@ public class VendingMachine
     {
         if (!foodWarehouse.HasAvailableProducts())
         {
-            Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
-            Console.WriteLine("\nwant to change the role? (yes/no&exit)");
             while (true)
             {
+                Console.WriteLine("\nsorry, there are NO products IN STOCK. you cannot make a purchase now.");
+                Console.WriteLine("\nwant to change the role? (yes/no&exit)");
+
                 string? ans = Console.ReadLine();
 
                 if (string.IsNullOrWhiteSpace(ans))
@@ -551,14 +551,14 @@ public class VendingMachine
             catch (Exception ex)
             {
                 Console.WriteLine($"\nerror occurred: {ex.Message}\nreturning to main menu....");
-                MachineStart();
+                MachineStart("manual");
                 return;
             }
         }
         else
         {
             Console.WriteLine("\nwrong password. returning to main menu....");
-            MachineStart();
+            MachineStart("manual");
             return;
         }
     }
@@ -569,54 +569,95 @@ public class VendingMachine
         bool randomBool = rand.Next(0, 2) == 0; // will be true if 0, false if 1
         return randomBool;
     }
-    public void MachineStart()
+    public void MachineStart(string pattern = "random") // pattern can be "random" or "manual"
     {
         isRunning = true;
-
-        if (FilledMachine())
+        if (pattern is "random")
         {
-            // filling the cash desk with random amount of random coins/banknotes
-            cashDesk.Fill();
-            // adding some products
-            foodWarehouse.FillProducts(new List<Product> {new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with maple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100)});
-
-            while (true)
+            if (FilledMachine())
             {
-                Console.WriteLine("\nchoose your role: user or admin");
+                // filling the cash desk with random amount of random coins/banknotes
+                cashDesk.Fill();
+                // adding some products
+                foodWarehouse.FillProducts(new List<Product> { new Product(1, "water 'saint spring'", 50, 100), new Product(2, "greek salad", 100, 50), new Product(3, "chiken karri sandwich", 120, 50), new Product(4, "pancackes with maple syrup", 120, 100), new Product(5, "nut&dried fruits mix", 100, 100) });
 
-                string? role;
-                do
+                while (true)
                 {
-                    role = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(role))
+                    Console.WriteLine("\nchoose your role: user or admin");
+
+                    string? role;
+                    do
                     {
-                        Console.WriteLine("\nentered role cannot be empty. try again");
+                        role = Console.ReadLine();
+                        if (string.IsNullOrWhiteSpace(role))
+                        {
+                            Console.WriteLine("\nentered role cannot be empty. try again");
+                        }
+                    } while (string.IsNullOrWhiteSpace(role));
+
+                    switch (role.ToLower().Trim())
+                    {
+                        case "user":
+                        case "1":
+                            User user = new(this);
+                            UserScenario(user);
+                            return;
+
+                        case "admin":
+                        case "2":
+                            AdminScenario();
+                            return;
+
+                        default:
+                            Console.WriteLine("\nwrong role. try again");
+                            break;
                     }
-                } while (string.IsNullOrWhiteSpace(role));
-
-                switch (role.ToLower().Trim())
-                {
-                    case "user":
-                    case "1":
-                        User user = new(this);
-                        UserScenario(user);
-                        return;
-
-                    case "admin":
-                    case "2":
-                        AdminScenario();
-                        return;
-
-                    default:
-                        Console.WriteLine("\nwrong role. try again");
-                        break;
                 }
+            }
+            else
+            {
+                Console.WriteLine("\nthere are no products added yet. you need to login as an admin to add new products.");
+                AdminScenario();
+            }
+        }
+        else if (pattern is "manual" && !cashDesk.IsEmpty() && foodWarehouse.HasAvailableProducts())
+        {
+            Console.WriteLine("\nchoose your role: user or admin");
+
+            string? role;
+            do
+            {
+                role = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(role))
+                {
+                    Console.WriteLine("\nentered role cannot be empty. try again");
+                }
+            } while (string.IsNullOrWhiteSpace(role));
+
+            switch (role.ToLower().Trim())
+            {
+                case "user":
+                case "1":
+                    User user = new(this);
+                    UserScenario(user);
+                    return;
+
+                case "admin":
+                case "2":
+                    AdminScenario();
+                    return;
+
+                default:
+                    Console.WriteLine("\nwrong role. try again");
+                    MachineStart("manual");
+                    return;
             }
         }
         else
         {
-            Console.WriteLine("\nthere are no products added yet. you need to login as an admin to add new products.");
+            Console.WriteLine("\nthere are no products or money added yet. you need to login as an admin to add new products and fill the cash desk.");
             AdminScenario();
+            return;
         }
     }
 

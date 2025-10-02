@@ -2,7 +2,7 @@ namespace VendingMachineApp;
 public class CashDesk
 {
     //private List<Coin> _coins;
-    private HashSet<Coin> CoinsSet = new(); // to save coins of different faces only once and then increase their amount
+    private readonly HashSet<Coin> CoinsSet = new(); // to save coins of different faces only once and then increase their amount
     private static readonly HashSet<int> FacesSet = new() { 1, 2, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000 }; // or new List<int>() {1, 2, 5, 10}, but VSCode suggested simplification
     public CashDesk() // primary constructor, vendingMachine is already readonly field
     {
@@ -38,7 +38,7 @@ public class CashDesk
             return total;
         }
     }
-    private void CorrectnessCheck(int face, int amount)
+    private static void CorrectnessCheck(int face, int amount)
     {
         if (amount <= 0 || !FacesSet.Contains(face))
         {
